@@ -52,7 +52,7 @@ Default endpoints:
 docker compose down
 ```
 
-## Frontend build (optional)
+## Frontend build
 
 This repo intentionally does **not** commit `app/static/react/` (build artifacts). To build locally:
 
