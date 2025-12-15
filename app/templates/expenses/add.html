@@ -1,0 +1,208 @@
+{% extends "layout.html" %}
+
+{% block title %}Add Expense | {{ dog.name }}{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('dogs.detail', dog_id=dog.dogID) }}">{{ dog.name }}</a></li>
+                <li class="breadcrumb-item active">Add Expense</li>
+            </ol>
+        </nav>
+        <h1 class="mb-0">
+            <i class="fas fa-dollar-sign me-2 text-primary"></i>Add Expense
+        </h1>
+        <p class="text-muted">Record a new expense for {{ dog.name }} (ID: {{ dog.dogID }})</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('dogs.detail', dog_id=dog.dogID) }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dog Profile
+        </a>
+    </div>
+</div>
+
+{% if not is_user_eligible %}
+<div class="alert alert-danger mb-4">
+    <i class="fas fa-exclamation-circle me-2"></i> You must be at least 18 years old to add expenses.
+</div>
+{% else %}
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Expense Details</h5>
+                
+                <span class="badge p-2 {% if dog.animal_control %}bg-info{% else %}bg-primary{% endif %}">
+                    {% if dog.animal_control %}
+                    <i class="fas fa-shield-alt me-1"></i> Animal Control Surrender
+                    {% else %}
+                    <i class="fas fa-user me-1"></i> Personal Surrender
+                    {% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('expenses.add', dog_id=dog.dogID) }}" class="needs-validation" novalidate id="expense-form">
+                    
+                    <div class="mb-3">
+                        <label for="expense_date" class="form-label">Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="expense_date" name="expense_date" 
+                               max="{{ today }}" required>
+                        <div class="invalid-feedback">
+                            Please select a valid expense date.
+                        </div>
+                        
+                    </div>
+
+                    
+                    <div class="mb-3">
+                        <label for="vendor" class="form-label">Vendor <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="vendor" name="vendor" required 
+                                   list="vendor-list" placeholder="Enter vendor name">
+                            <button class="btn btn-outline-secondary" type="button" id="clear-vendor">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            <div class="invalid-feedback">
+                                Please provide a vendor name.
+                            </div>
+                        </div>
+                        
+                        <datalist id="vendor-list">
+                            {% for vendor in vendors %}
+                            <option value="{{ vendor }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+
+                    
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0.01" required>
+                            <div class="invalid-feedback">
+                                Please enter a valid amount greater than zero.
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="mb-3">
+                        <label for="category_id" class="form-label">Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="category_id" name="category_id" required>
+                            <option value="" selected disabled>Select a category</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            Please select an expense category.
+                        </div>
+                    </div>
+
+                    
+                    
+
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        
+                        <button type="submit" class="btn btn-primary" id="submit-button">
+                            <i class="fas fa-save me-1"></i> Save Expense
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        
+        {% if previous_expenses %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history me-2"></i>Previous Expenses
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Vendor</th>
+                                <th>Category</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in previous_expenses %}
+                            <tr>
+                                <td>{{ expense.date }}</td>
+                                <td>{{ expense.vendor }}</td>
+                                <td>{{ expense.category }}</td>
+                                <td class="text-end">${{ "%.2f"|format(expense.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light">
+                                <td colspan="3" class="fw-bold">Total</td>
+                                <td class="text-end fw-bold">${{ "%.2f"|format(total_expenses) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        const expenseDateInput = document.getElementById('expense_date');
+        expenseDateInput.min = "{{ dog.surrender_date }}";
+        
+        
+        expenseDateInput.value = "{{ today }}";
+        
+        
+        const clearVendorBtn = document.getElementById('clear-vendor');
+        const vendorInput = document.getElementById('vendor');
+        
+        clearVendorBtn.addEventListener('click', function() {
+            vendorInput.value = '';
+            vendorInput.focus();
+        });
+        
+        
+        const form = document.getElementById('expense-form');
+        
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                
+                document.getElementById('submit-button').disabled = true;
+                document.getElementById('submit-button').innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+            }
+            
+            form.classList.add('was-validated');
+        });
+        
+        
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,297 @@
+{% extends "layout.html" %}
+
+{% block title %}Animal Control Report Drill-down | {{ month }} | {{ category_title }}{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('reports.animal_control') }}">Animal Control Report</a></li>
+                <li class="breadcrumb-item active">{{ category_title }} ({{ month }})</li>
+            </ol>
+        </nav>
+        <h1 class="mb-0">{{ category_title }}</h1>
+        <p class="text-muted">Detailed information for {{ month }}</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('reports.animal_control') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Animal Control Report
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            {% if category == 'surrenders' %}
+            Animal Control Surrenders
+            {% elif category == 'adopted' %}
+            Dogs Adopted (60+ Days in Rescue)
+            {% elif category == 'expenses' %}
+            Total Expenses for Adopted Dogs
+            {% endif %}
+        </h5>
+        <span class="badge bg-primary">{{ month }}</span>
+    </div>
+    <div class="card-body p-0">
+        {% if dogs and dogs|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Dog ID</th>
+                        <th>Breed</th>
+                        <th>Sex</th>
+                        {% if category == 'surrenders' %}
+                        <th>Alteration Status</th>
+                        <th>Microchip ID</th>
+                        <th>Surrender Date</th>
+                        {% elif category == 'adopted' %}
+                        <th>Microchip ID</th>
+                        <th>Surrender Date</th>
+                        <th>Days in Rescue</th>
+                        {% elif category == 'expenses' %}
+                        <th>Microchip ID</th>
+                        <th>Surrender Date</th>
+                        
+                        <th>Animal Control</th>
+                        <th class="text-end">Total Expenses</th>
+                        {% endif %}
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dog in dogs %}
+                    <tr>
+                        <td>{{ dog.dogID }}</td>
+                        <td>{{ dog.breed|default('Unknown') }}</td>
+                        <td>{{ dog.sex|default('Unknown') }}</td>
+                        {% if category == 'surrenders' %}
+                        <td>{% if dog.alteration_status %}Yes{% else %}No{% endif %}</td>
+                        <td>{{ dog.microchip_ID|default('None') }}</td>
+                        <td>{{ dog.surrender_date|default('Unknown') }}</td>
+                        {% elif category == 'adopted' %}
+                        <td>{{ dog.microchip_ID|default('None') }}</td>
+                        <td>{{ dog.surrender_date|default('Unknown') }}</td>
+                        <td class="fw-bold">{{ dog.days_in_rescue|default(0) }}</td>
+                        {% elif category == 'expenses' %}
+                        <td>{{ dog.microchip_ID|default('None') }}</td>
+                        <td>{{ dog.surrender_date|default('Unknown') }}</td>
+                        
+                        <td>{% if dog.animal_control %}Yes{% else %}No{% endif %}</td>
+                        <td class="text-end">${{ (dog.total_expenses|float)|round(2) }}</td>
+                        {% endif %}
+                        <td>
+                            <a href="{{ url_for('dogs.detail', dog_id=dog.dogID) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye me-1"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if category == 'expenses' and total_expenses is defined %}
+                <tfoot>
+                    <tr class="table-primary">
+                        <th colspan="{% if category == 'expenses' %}7{% else %}4{% endif %}" class="text-end">Total:</th>
+                        <th class="text-end">${{ total_expenses|round(2) }}</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info m-3">
+            <i class="fas fa-info-circle me-2"></i> No data available for {{ category }} in {{ month }}.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if category == 'adopted' and dogs %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Days in Rescue Analysis</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <canvas id="daysInRescueChart"></canvas>
+            </div>
+            <div class="col-md-6">
+                <div class="stats-card mb-3">
+                    <h6>Average Days in Rescue</h6>
+                    <div class="display-4">{{ avg_days_in_rescue | round(1) }}</div>
+                </div>
+                <div class="stats-card mb-3">
+                    <h6>Longest Time in Rescue</h6>
+                    <div class="display-4">{{ max_days_in_rescue }}</div>
+                    <small class="text-muted">Dog ID: {{ longest_stay_dog_id }}</small>
+                </div>
+                <div class="stats-card">
+                    <h6>Shortest Time in Rescue</h6>
+                    <div class="display-4">{{ min_days_in_rescue }}</div>
+                    <small class="text-muted">Dog ID: {{ shortest_stay_dog_id }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if category == 'expenses' and dogs %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Expenses Analysis</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <canvas id="expensesChart"></canvas>
+            </div>
+            <div class="col-md-6">
+                <div class="stats-card mb-3">
+                    <h6>Average Expenses Per Dog</h6>
+                    <div class="display-4">${{ avg_expenses | round(2) }}</div>
+                </div>
+                <div class="stats-card mb-3">
+                    <h6>Highest Expenses</h6>
+                    <div class="display-4">${{ max_expenses | round(2) }}</div>
+                    <small class="text-muted">Dog ID: {{ highest_expense_dog_id }}</small>
+                </div>
+                <div class="stats-card">
+                    <h6>Animal Control Expenses</h6>
+                    <div class="display-4">${{ ac_expenses | round(2) }}</div>
+                    <small class="text-muted">({{ ac_expense_percentage | round(1) }}% of total)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="text-center mt-4">
+    <a href="{{ url_for('reports.animal_control') }}" class="btn btn-primary">
+        <i class="fas fa-arrow-left me-1"></i> Back to Animal Control Report
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}">
+<style>
+    .stats-card {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .stats-card h6 {
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stats-card .display-4 {
+        font-weight: 600;
+        color: #4a6eb5;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if category == 'adopted' and dogs %}
+    const daysInRescueCtx = document.getElementById('daysInRescueChart').getContext('2d');
+    new Chart(daysInRescueCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for dog in dogs %}"Dog {{ dog.dogID }}",{% endfor %}],
+            datasets: [{
+                label: 'Days in Rescue',
+                data: [{% for dog in dogs %}{{ dog.days_in_rescue }},{% endfor %}],
+                backgroundColor: 'rgba(40, 167, 69, 0.6)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Days'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Dog ID'
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+    
+    {% if category == 'expenses' and dogs %}
+
+    const expensesCtx = document.getElementById('expensesChart').getContext('2d');
+    new Chart(expensesCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for dog in dogs %}"Dog {{ dog.dogID }}",{% endfor %}],
+            datasets: [{
+                label: 'Expenses',
+                data: [{% for dog in dogs %}{{ dog.total_expenses }},{% endfor %}],
+                backgroundColor: [{% for dog in dogs %}{% if dog.animal_control %}'rgba(23, 162, 184, 0.6)'{% else %}'rgba(108, 117, 125, 0.6)'{% endif %},{% endfor %}],
+                borderColor: [{% for dog in dogs %}{% if dog.animal_control %}'rgba(23, 162, 184, 1)'{% else %}'rgba(108, 117, 125, 1)'{% endif %},{% endfor %}],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Expenses ($)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Dog ID'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '$' + context.raw.toFixed(2);
+                        }
+                    }
+                },
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    {% endif %}
+});
+</script>
+{% endblock %}

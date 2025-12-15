@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Burdell's Devoted Dogs{% endblock %}</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-fix.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dog-cards.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if session.logged_in %}
+    
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <i class="fas fa-dog me-2"></i>Burdell's Devoted Dogs
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard.index') }}">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>{{ session.user_firstname }} {{ session.user_lastname }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                <i class="fas fa-sign-out-alt me-1"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container-fluid">
+        <div class="row">
+            
+            <div class="col-md-3 col-lg-2 d-md-block sidebar" id="sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        
+                        <li class="sidebar-heading mt-3 mb-1 text-muted ps-3">
+                            <span>DOG MANAGEMENT</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'dogs.list_dogs' %}active{% endif %}" href="{{ url_for('dogs.list_dogs') }}">
+                                <i class="fas fa-list me-2"></i>
+                                Dogs Information
+                            </a>
+                        </li>
+
+                        {% if is_executive_director %}
+                        <li class="sidebar-heading mt-3 mb-1 text-muted ps-3">
+                            <span>ADOPTION MANAGEMENT</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'adoption.all_apps' %}active{% endif %}" href="{{ url_for('adoption.all_apps') }}">
+                                <i class="fas fa-clipboard-list me-2"></i>
+                                All Applications
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% if is_executive_director %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'adoption.review_apps' %}active{% endif %}" href="{{ url_for('adoption.review_apps') }}">
+                                <i class="fas fa-clipboard-check me-2"></i>
+                                Review Applications
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% if is_executive_director %}
+                        <li class="sidebar-heading mt-3 mb-1 text-muted ps-3">
+                            <span>REPORTS</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'reports.animal_control' %}active{% endif %}" href="{{ url_for('reports.animal_control') }}">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                Animal Control
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'reports.monthly_adoption' %}active{% endif %}" href="{{ url_for('reports.monthly_adoption') }}">
+                                <i class="fas fa-calendar-alt me-2"></i>
+                                Monthly Adoption
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'reports.expense_analysis' %}active{% endif %}" href="{{ url_for('reports.expense_analysis') }}">
+                                <i class="fas fa-chart-pie me-2"></i>
+                                Expense Analysis
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'reports.volunteer_lookup' %}active{% endif %}" href="{{ url_for('reports.volunteer_lookup') }}">
+                                <i class="fas fa-search me-2"></i>
+                                Volunteer Lookup
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'reports.volunteer_birthdays' %}active{% endif %}" href="{{ url_for('reports.volunteer_birthdays') }}">
+                                <i class="fas fa-birthday-cake me-2"></i>
+                                Volunteer Birthdays
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            
+            
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                
+                {% block main_content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    
+    <footer class="bg-light text-center text-muted py-3 mt-5">
+        <div class="container">
+            &copy; {{ current_year }} Burdell's Devoted Dogs. All rights reserved.
+        </div>
+    </footer>
+    {% else %}
+    
+    <main class="container py-4">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        
+        {% block content %}{% endblock %}
+    </main>
+    {% endif %}
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- React Entry Point -->
+    <script type="module" src="{{ vite_asset('src/main.tsx') }}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

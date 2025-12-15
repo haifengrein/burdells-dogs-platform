@@ -1,0 +1,389 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ dog.name }} | Dog Details{% endblock %}
+
+{% block main_content %}
+
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Dog Details</li>
+            </ol>
+        </nav>
+        <h1 class="mb-0">
+            <i class="fas fa-paw me-2 text-primary"></i>{{ dog.name }}
+            {% if dog.adoptability_status == 'Available' %}
+            <span class="status-badge status-badge-available ms-2">
+                <i class="fas fa-check-circle"></i> Available
+            </span>
+            {% elif dog.adoptability_status == 'Not Available' %}
+            <span class="status-badge status-badge-not-available ms-2">
+                <i class="fas fa-clock"></i> Not Available
+            </span>
+            {% elif dog.adoptability_status == 'Adopted' %}
+            <span class="status-badge status-badge-adopted ms-2">
+                <i class="fas fa-home"></i> Adopted
+            </span>
+            {% endif %}
+        </h1>
+        <p class="text-muted">Dog ID: {{ dog.dogID }}</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <div class="d-flex justify-content-md-end gap-2">
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+            </a>
+            {% if is_editable and is_authenticated %}
+            <a href="{{ url_for('dogs.edit', dog_id=dog.dogID) }}" class="btn btn-primary">
+                <i class="fas fa-edit me-1"></i> Edit
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    
+    <div class="col-lg-8">
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Basic Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-venus-mars me-2 text-primary"></i>Sex:</span>
+                                <span class="badge rounded-pill bg-light text-dark">{{ dog.sex }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-cut me-2 text-primary"></i>Altered:</span>
+                                <span class="badge rounded-pill {% if dog.alteration_status == 1 %}bg-success{% else %}bg-danger{% endif %}">
+                                    {% if dog.alteration_status == 1 %}Yes{% else %}No{% endif %}
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-birthday-cake me-2 text-primary"></i>Age at Surrender:</span>
+                                <span class="badge rounded-pill bg-light text-dark">
+                                    {% if dog.age_at_time_of_surrender >= 12 %}
+                                        {{ (dog.age_at_time_of_surrender / 12)|int }} year{% if (dog.age_at_time_of_surrender / 12)|int != 1 %}s{% endif %}
+                                        {% if dog.age_at_time_of_surrender % 12 != 0 %}
+                                            {{ dog.age_at_time_of_surrender % 12 }} month{% if dog.age_at_time_of_surrender % 12 != 1 %}s{% endif %}
+                                        {% endif %}
+                                    {% else %}
+                                        {{ dog.age_at_time_of_surrender }} month{% if dog.age_at_time_of_surrender != 1 %}s{% endif %}
+                                    {% endif %}
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-calendar-day me-2 text-primary"></i>Surrender Date:</span>
+                                <span class="badge rounded-pill bg-light text-dark">{{ dog.surrender_date }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="fas fa-shield-alt me-2 text-primary"></i>
+                                    Animal Control:
+                                </span>
+                                <span class="badge rounded-pill {% if dog.animal_control == 1 %}bg-info{% else %}bg-light text-dark{% endif %}">
+                                    {% if dog.animal_control == 1 %}Yes{% else %}No{% endif %}
+                                </span>
+                            </li>
+                            {% if is_executive_director %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-phone me-2 text-primary"></i>Surrender Phone:</span>
+                                <span class="badge rounded-pill bg-light text-dark">
+                                    {% if dog.surrender_phone_number %}{{ dog.surrender_phone_number }}{% else %}None{% endif %}
+                                </span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tags me-2"></i>Breed Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    {% for breed in dog_breeds %}
+                    <span class="badge bg-primary p-2">{{ breed.name }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary p-2">Unknown</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-microchip me-2"></i>Microchip Information
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if microchip %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted">Microchip ID</p>
+                        <h5>{{ microchip.microchip_ID }}</h5>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted">Vendor</p>
+                        <h5>{{ microchip.microchip_vendor_name }}</h5>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i> No microchip information available.
+                    {% if not dog.adoptability_status == 'Adopted' %}
+                    <p class="mb-0 mt-2 small">Note: A dog must be microchipped before it can be adopted.</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        
+        {% if dog.description %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-alt me-2"></i>Description
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ dog.description }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        
+        {% if dog.adoption and is_executive_director %}
+        <div class="card mb-4 border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-home me-2"></i>Adopter Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted">Adoption Date</p>
+                        <h5>{{ dog.adoption.adoption_date }}</h5>
+                        <p class="mb-1 text-muted">Adoption Fee</p>
+                        <h5>
+                            ${{ "%.2f"|format(dog.adoption.fee) }}
+                            {% if dog.adoption.fee_waived and 'Terrier' in dog.breeds|default("") and (dog.name == 'Sideways' or dog.name == 'sideways') %}
+                            <span class="badge bg-success ms-2">Waived</span>
+                            {% endif %}
+                        </h5>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted">Adopter</p>
+                        <h5>{{ dog.adoption.adopter_firstname }} {{ dog.adoption.adopter_lastname }}</h5>
+                        <p class="mb-1 text-muted">Contact</p>
+                        <div><i class="fas fa-envelope me-1"></i>{{ dog.adoption.adopter_email }}</div>
+                        <div><i class="fas fa-phone me-1"></i>{{ dog.adoption.adopter_phone_number }}</div>
+                        <div><i class="fas fa-users me-1"></i>Household: {{ dog.adoption.adopter_household_size }} people</div>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-12">
+                        <p class="mb-1 text-muted">Address</p>
+                        <address>
+                            {{ dog.adoption.adopter_street }}<br>
+                            {{ dog.adoption.adopter_city }}, {{ dog.adoption.adopter_state }} {{ dog.adoption.adopter_zipcode }}
+                        </address>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% elif dog.adoption %}
+        <div class="card mb-4 border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-home me-2"></i>Adoption Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    This dog has been adopted on {{ dog.adoption.adoption_date }}.
+                    <p class="mt-2 mb-0 small">Only Executive Directors can view detailed adopter information.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    
+    <div class="col-lg-4">
+        
+        {% if not dog.adoptability_status == 'Adopted' %}
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clipboard-check me-2"></i>Adoption Eligibility
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Altered</span>
+                        {% if dog.alteration_status == 1 %}
+                        <i class="fas fa-check-circle text-success fa-lg"></i>
+                        {% else %}
+                        <i class="fas fa-times-circle text-danger fa-lg"></i>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Microchipped</span>
+                        {% if microchip %}
+                        <i class="fas fa-check-circle text-success fa-lg"></i>
+                        {% else %}
+                        <i class="fas fa-times-circle text-danger fa-lg"></i>
+                        {% endif %}
+                    </li>
+                </ul>
+                
+                {% if can_adopt and is_executive_director %}
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{{ url_for('adoption.process', dog_id=dog.dogID) }}" class="btn btn-success">
+                        <i class="fas fa-heart me-1"></i> Add Adoption
+                    </a>
+                </div>
+                {% elif not can_adopt %}
+                <div class="alert alert-warning mt-3 mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i> 
+                    This dog is not eligible for adoption yet. 
+                    {% if not dog.alteration_status and not microchip %}
+                    The dog needs to be altered and microchipped.
+                    {% elif not dog.alteration_status %}
+                    The dog needs to be altered.
+                    {% elif not microchip %}
+                    The dog needs to be microchipped.
+                    {% endif %}
+                </div>
+                {% elif not is_executive_director %}
+                <div class="alert alert-info mt-3 mb-0">
+                    <i class="fas fa-info-circle me-2"></i> Only the Executive Director can add adoptions.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-money-bill-wave me-2"></i>Expenses Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if expenses_by_category %}
+                <div class="mb-4">
+                    {% for category, amount in expenses_by_category.items() %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="expense-category-{{ category|lower|replace(' ', '-') }}">{{ category }}</span>
+                            <span class="fw-bold">${{ "%.2f"|format(amount) }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar" role="progressbar" 
+                                style="width: {{ (amount / total_expenses) * 100 }}%; background-color: 
+                                {% if category == 'Veterinarian fees' %}#4a6eb5
+                                {% elif category == 'Medications' %}#6f42c1
+                                {% elif category == 'Dental care' %}#e83e8c
+                                {% elif category == 'Food supplies' %}#fd7e14
+                                {% elif category == 'Treats and Toys' %}#28a745
+                                {% elif category == 'Leashes, collars, harnesses' %}#20c997
+                                {% elif category == 'Shelter supplies' %}#17a2b8
+                                {% elif category == 'Grooming supplies' %}#7b68ee
+                                {% elif category == 'Transportation' %}#6c757d
+                                {% elif category == 'Miscellaneous' %}#dc3545
+                                {% else %}#4a6eb5{% endif %};"
+                                aria-valuenow="{{ (amount / total_expenses) * 100 }}" 
+                                aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="h5 mb-0">Total Expenses</span>
+                    <span class="h4 mb-0 expense-grand-total">${{ "%.2f"|format(total_expenses) }}</span>
+                </div>
+                
+                {% if not dog.adoptability_status == 'Adopted' %}
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{{ url_for('expenses.add', dog_id=dog.dogID) }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i> Add Expense
+                    </a>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle me-2"></i> No expenses recorded yet.
+                </div>
+                
+                {% if not dog.adoptability_status == 'Adopted' %}
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('expenses.add', dog_id=dog.dogID) }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i> Add First Expense
+                    </a>
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history me-2"></i>Entry Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-1 text-muted">Entered By</p>
+                <h6 class="mb-3">{{ volunteer_name }}</h6>
+                
+                <p class="mb-1 text-muted">Entry Date</p>
+                <h6>{{ dog.surrender_date }}</h6>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

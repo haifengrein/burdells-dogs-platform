@@ -1,0 +1,358 @@
+{% extends "layout.html" %}
+
+{% block title %}Process Adoption | {{ dog.name }}{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('dogs.detail', dog_id=dog.dogID) }}">Dog Details</a></li>
+                <li class="breadcrumb-item active">Process Adoption</li>
+            </ol>
+        </nav>
+        <h1 class="mb-0">Process Adoption</h1>
+        <p class="text-muted">For {{ dog.name }} (ID: {{ dog.dogID }})</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('dogs.detail', dog_id=dog.dogID) }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dog Details
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Dog Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="section-heading">Basic Details</h6>
+                        <p><strong>Name:</strong> {{ dog.name }}</p>
+                        <p><strong>ID:</strong> {{ dog.dogID }}</p>
+                        <p><strong>Sex:</strong> {{ dog.sex }}</p>
+                        <p><strong>Breed:</strong> {{ breed_names }}</p>
+                        <p><strong>Age at Surrender:</strong> {{ dog.age_at_time_of_surrender }} months</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="section-heading">Adoption Eligibility</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Altered
+                                {% if dog.alteration_status %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i></span>
+                                {% else %}
+                                <span class="badge bg-danger"><i class="fas fa-times"></i></span>
+                                {% endif %}
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Microchipped
+                                {% if microchip %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i></span>
+                                {% else %}
+                                <span class="badge bg-danger"><i class="fas fa-times"></i></span>
+                                {% endif %}
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Available for Adoption
+                                {% if dog.adoptability_status == 'Available' %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i></span>
+                                {% else %}
+                                <span class="badge bg-danger"><i class="fas fa-times"></i></span>
+                                {% endif %}
+                            </li>
+                        </ul>
+                        
+                        {% if not eligible_for_adoption %}
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Warning:</strong> This dog is not eligible for adoption.
+                            {% if not dog.alteration_status %}
+                            <p class="mb-0 mt-1">Dog needs to be altered.</p>
+                            {% endif %}
+                            {% if not microchip %}
+                            <p class="mb-0 mt-1">Dog needs to be microchipped.</p>
+                            {% endif %}
+                            {% if dog.adoptability_status != 'Available' %}
+                            <p class="mb-0 mt-1">Dog's adoptability status is not set to 'Available'.</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Search for Approved Adopters</h5>
+            </div>
+            <div class="alert alert-info m-3">
+                <i class="fas fa-info-circle me-2"></i> 
+                <strong>Note:</strong> Only adopters with previously approved applications will appear in search results. 
+                Applications must be reviewed and marked as "Approved" in the "Review Adoption Applications" section before they can be matched with a dog.
+                This "Add Adoption" process is the final step that creates the actual adoption record by matching an approved application with this specific dog.
+            </div>
+            <div class="card-body">
+                <form id="search-form" class="mb-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="search-term" placeholder="Search by last name..." autofocus>
+                        <button class="btn btn-primary" type="submit">Search</button>
+                    </div>
+                    <div class="form-text">Enter any part of the adopter's last name</div>
+                </form>
+                
+                <div id="search-results">
+                    {% if search_performed %}
+                        {% if adopters %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Application Date</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for adopter in adopters %}
+                                        <tr>
+                                            <td>{{ adopter.firstname }} {{ adopter.lastname }}</td>
+                                            <td>{{ adopter.adopterEmail }}</td>
+                                            <td>{{ adopter.phone_number }}</td>
+                                            <td>{{ adopter.appDate }}</td>
+                                            <td>
+                                                <button 
+                                                    class="btn btn-sm btn-primary select-adopter"
+                                                    data-name="{{ adopter.firstname }} {{ adopter.lastname }}"
+                                                    data-email="{{ adopter.adopterEmail }}"
+                                                    data-phone="{{ adopter.phone_number }}"
+                                                    data-app-date="{{ adopter.appDate }}"
+                                                    >
+                                                    <i class="fas fa-check me-1"></i> Select
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> No approved adopters found with that last name.
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+ 
+        <div id="adoption-form-container" class="card mb-4 {% if not selected_adopter %}d-none{% endif %}">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Adoption Details</h5>
+            </div>
+            <div class="card-body">
+                {% if selected_adopter %}
+                <div class="selected-adopter-info mb-4">
+                    <h6 class="section-heading">Selected Adopter</h6>
+                    <p><strong>Name:</strong> {{ selected_adopter.firstname }} {{ selected_adopter.lastname }}</p>
+                    <p><strong>Email:</strong> {{ selected_adopter.adopterEmail }}</p>
+                    <p><strong>Phone:</strong> {{ selected_adopter.phone_number }}</p>
+                    <p><strong>Application Date:</strong> {{ selected_adopter.appDate }}</p>
+                </div>
+                {% else %}
+                <div class="selected-adopter-info mb-4 d-none">
+                    <h6 class="section-heading">Selected Adopter</h6>
+                    <p><strong>Name:</strong> <span id="adopter-name"></span></p>
+                    <p><strong>Email:</strong> <span id="adopter-email"></span></p>
+                    <p><strong>Phone:</strong> <span id="adopter-phone"></span></p>
+                    <p><strong>Application Date:</strong> <span id="adopter-app-date"></span></p>
+                </div>
+                {% endif %}
+                
+                <hr>
+                
+                <form method="POST" action="{{ url_for('adoption.process', dog_id=dog.dogID) }}" class="needs-validation" novalidate>
+                
+                    <input type="hidden" id="application_date" name="application_date" value="{{ selected_adopter.appDate if selected_adopter else '' }}">
+                    <input type="hidden" id="adopter_email" name="adopter_email" value="{{ selected_adopter.adopterEmail if selected_adopter else '' }}">
+                    
+                    <div class="mb-3">
+                        <label for="adoption_date" class="form-label">Adoption Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="adoption_date" name="adoption_date" required value="{{ today_date }}">
+                        <div class="invalid-feedback">
+                            Please provide the adoption date.
+                        </div>
+                    </div>
+                    
+                    
+                    <div class="mb-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">Adoption Fee Details</h6>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Total Expenses:</strong></p>
+                                        <h4>${{ total_expenses | round(2) }}</h4>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Adoption Fee:</strong></p>
+                                        <h4 id="fee-display">${{ adoption_fee | round(2) }}
+                                        {% if fee_waived %}
+                                        <span class="text-success">(Waived)</span>
+                                        {% endif %}
+                                        </h4>
+                                        <input type="hidden" id="fee" name="fee" value="{{ adoption_fee }}">
+                                        <input type="hidden" id="fee_waived" name="fee_waived" value="{{ 1 if fee_waived else 0 }}">
+                                        <small class="text-muted">
+                                            {% if dog.animal_control %}
+                                            Fee is 10% of expenses for animal control surrenders
+                                            {% else %}
+                                            Fee is 125% of expenses for non-animal control surrenders
+                                            {% endif %}
+                                            
+                                            {% if fee_waived %}
+                                            <br>Fee is waived for this Terrier named "Sideways"
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" id="cancel-adoption" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-heart me-1"></i> Process Adoption
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+       
+        {% if adoption_processed %}
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0"><i class="fas fa-check-circle me-2"></i>Adoption Processed Successfully</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="section-heading">Dog Information</h6>
+                        <p><strong>Name:</strong> {{ dog.name }}</p>
+                        <p><strong>ID:</strong> {{ dog.dogID }}</p>
+                        <p><strong>Breed:</strong> {{ breed_names }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="section-heading">Adoption Details</h6>
+                        <p><strong>Adopter:</strong> {{ selected_adopter.firstname }} {{ selected_adopter.lastname }}</p>
+                        <p><strong>Phone:</strong> {{ selected_adopter.phone_number }}</p>
+                        <p><strong>Adoption Date:</strong> {{ adoption_date }}</p>
+                        <p><strong>Adoption Fee:</strong> ${{ adoption_fee | round(2) }}
+                        {% if fee_waived %}
+                        <span class="text-success">(Waived)</span>
+                        {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">
+                        <i class="fas fa-home me-1"></i> Return to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.getElementById('search-form');
+    const searchTerm = document.getElementById('search-term');
+    const adoptionFormContainer = document.getElementById('adoption-form-container');
+    const adopterNameElement = document.getElementById('adopter-name');
+    const adopterEmailElement = document.getElementById('adopter-email');
+    const adopterPhoneElement = document.getElementById('adopter-phone');
+    const adopterAppDateElement = document.getElementById('adopter-app-date');
+    const applicationDateInput = document.getElementById('application_date');
+    const adopterEmailInput = document.getElementById('adopter_email');
+    const cancelAdoptionBtn = document.getElementById('cancel-adoption');
+    const selectedAdopterInfo = document.querySelector('.selected-adopter-info');
+    
+    
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            if (searchTerm.value.trim() !== '') {
+                window.location.href = "{{ url_for('adoption.process', dog_id=dog.dogID) }}?search=" + encodeURIComponent(searchTerm.value.trim());
+            }
+        });
+    }
+    
+    
+    document.querySelectorAll('.select-adopter').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const name = this.getAttribute('data-name');
+            const email = this.getAttribute('data-email');
+            const phone = this.getAttribute('data-phone');
+            const appDate = this.getAttribute('data-app-date');
+            
+            
+            applicationDateInput.value = appDate;
+            adopterEmailInput.value = email;
+            
+            
+            adopterNameElement.textContent = name;
+            adopterEmailElement.textContent = email;
+            adopterPhoneElement.textContent = phone;
+            adopterAppDateElement.textContent = appDate;
+            
+          
+            adoptionFormContainer.classList.remove('d-none');
+            selectedAdopterInfo.classList.remove('d-none');
+
+            adoptionFormContainer.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+    
+
+    if (cancelAdoptionBtn) {
+        cancelAdoptionBtn.addEventListener('click', function() {
+            adoptionFormContainer.classList.add('d-none');
+            applicationDateInput.value = '';
+            adopterEmailInput.value = '';
+        });
+    }
+
+    const form = document.querySelector('form.needs-validation');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            if (!this.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else if (!applicationDateInput.value || !adopterEmailInput.value) {
+                event.preventDefault();
+                alert('Please select an adopter first.');
+            }
+            this.classList.add('was-validated');
+        });
+    }
+});
+</script>
+{% endblock %}

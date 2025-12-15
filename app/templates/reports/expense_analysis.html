@@ -1,0 +1,367 @@
+{% extends "layout.html" %}
+
+{% block title %}Expense Analysis | Burdell's Devoted Dogs{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Reports</a></li>
+                <li class="breadcrumb-item active">Expense Analysis</li>
+            </ol>
+        </nav>
+        <h1 class="mb-0">Expense Analysis</h1>
+        <p class="text-muted">Vendor expense analysis for all time</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body">
+                <h5 class="card-title">Total Expenses</h5>
+                <p class="display-4 mb-0">${{ total_expenses | round(2) }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body">
+                <h5 class="card-title">Total Vendors</h5>
+                <p class="display-4 mb-0">{{ vendor_count }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info h-100">
+            <div class="card-body">
+                <h5 class="card-title">Average Per Vendor</h5>
+                <p class="display-4 mb-0">${{ avg_per_vendor | round(2) }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Vendor Expense Analysis</h5>
+        <div>
+            <button id="exportCSV" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-file-csv me-1"></i> Export CSV
+            </button>
+            <button id="printReport" class="btn btn-sm btn-outline-primary ms-2">
+                <i class="fas fa-print me-1"></i> Print
+            </button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover" id="vendorTable">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Vendor Name</th>
+                        <th class="text-end">Total Amount</th>
+                        <th class="text-end">Percentage of Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vendor in vendors %}
+                    <tr {% if loop.index <= 3 %}class="table-primary"{% endif %}>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ vendor.vendor }}</td>
+                        <td class="text-end">${{ vendor.total | round(2) }}</td>
+                        <td class="text-end">{{ ((vendor.total / total_expenses) * 100) | round(1) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Top 10 Vendors by Expense</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="topVendorsChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Expense Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="expenseDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% if categories %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Expenses by Category</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-lg-8">
+                <canvas id="categoriesChart"></canvas>
+            </div>
+            <div class="col-lg-4">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th class="text-end">Total</th>
+                                <th class="text-end">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in categories %}
+                            <tr>
+                                <td>{{ category.name }}</td>
+                                <td class="text-end">${{ category.amount | round(2) }}</td>
+                                <td class="text-end">{{ ((category.amount / total_expenses) * 100) | round(1) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Recommendations</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info mb-0">
+            <h6><i class="fas fa-lightbulb me-2"></i>Potential Cost Savings Opportunities</h6>
+            <ul class="mb-0">
+                {% if vendors|length > 0 %}
+                <li>Consider negotiating volume discounts with {{ vendors[0].vendor }}, your top vendor by spend ({{ ((vendors[0].total / total_expenses) * 100) | round(1) }}% of total expenses).</li>
+                {% endif %}
+                
+                {% if vendors|length > 3 %}
+                <li>The top 3 vendors account for {{ ((vendors[0].total + vendors[1].total + vendors[2].total) / total_expenses * 100) | round(1) }}% of total expenses. Focus cost-saving efforts on these relationships.</li>
+                {% endif %}
+                
+                <li>Consider comparing pricing across vendors for similar services to ensure competitive rates.</li>
+                
+                <li>Review monthly expense trends to identify any unusual spending patterns.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+ 
+    const vendorNames = [{% for vendor in vendors[:10] %}"{{ vendor.vendor }}",{% endfor %}];
+    const vendorAmounts = [{% for vendor in vendors[:10] %}{{ vendor.total }},{% endfor %}];
+    
+
+    const top10Total = vendorAmounts.reduce((a, b) => a + b, 0);
+    const othersTotal = {{ total_expenses }} - top10Total;
+    
+
+    const topVendorsCtx = document.getElementById('topVendorsChart').getContext('2d');
+    new Chart(topVendorsCtx, {
+        type: 'bar',
+        data: {
+            labels: vendorNames,
+            datasets: [{
+                label: 'Total Amount ($)',
+                data: vendorAmounts,
+                backgroundColor: 'rgba(74, 110, 181, 0.7)',
+                borderColor: 'rgba(74, 110, 181, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            const percent = (value / {{ total_expenses }} * 100).toFixed(1);
+                            return `$${value.toFixed(2)} (${percent}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+
+    const expenseDistributionCtx = document.getElementById('expenseDistributionChart').getContext('2d');
+    
+ 
+    const distributionLabels = [...vendorNames.slice(0, 5), 'Others'];
+    const distributionData = [...vendorAmounts.slice(0, 5)];
+    const remaining = vendorAmounts.slice(5).reduce((a, b) => a + b, 0) + othersTotal;
+    distributionData.push(remaining);
+    
+    new Chart(expenseDistributionCtx, {
+        type: 'pie',
+        data: {
+            labels: distributionLabels,
+            datasets: [{
+                data: distributionData,
+                backgroundColor: [
+                    'rgba(74, 110, 181, 0.7)',
+                    'rgba(40, 167, 69, 0.7)',
+                    'rgba(23, 162, 184, 0.7)',
+                    'rgba(255, 193, 7, 0.7)',
+                    'rgba(220, 53, 69, 0.7)',
+                    'rgba(108, 117, 125, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(74, 110, 181, 1)',
+                    'rgba(40, 167, 69, 1)',
+                    'rgba(23, 162, 184, 1)',
+                    'rgba(255, 193, 7, 1)',
+                    'rgba(220, 53, 69, 1)',
+                    'rgba(108, 117, 125, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            const percent = (value / {{ total_expenses }} * 100).toFixed(1);
+                            return `${context.label}: $${value.toFixed(2)} (${percent}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    {% if categories %}
+    const categoriesCtx = document.getElementById('categoriesChart').getContext('2d');
+    const categoryNames = [{% for category in categories %}"{{ category.name }}",{% endfor %}];
+    const categoryAmounts = [{% for category in categories %}{{ category.amount }},{% endfor %}];
+    
+    new Chart(categoriesCtx, {
+        type: 'doughnut',
+        data: {
+            labels: categoryNames,
+            datasets: [{
+                data: categoryAmounts,
+                backgroundColor: [
+                    'rgba(74, 110, 181, 0.7)',
+                    'rgba(40, 167, 69, 0.7)',
+                    'rgba(23, 162, 184, 0.7)',
+                    'rgba(255, 193, 7, 0.7)',
+                    'rgba(220, 53, 69, 0.7)',
+                    'rgba(108, 117, 125, 0.7)',
+                    'rgba(111, 66, 193, 0.7)',
+                    'rgba(253, 126, 20, 0.7)',
+                    'rgba(32, 201, 151, 0.7)',
+                    'rgba(102, 16, 242, 0.7)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            const percent = (value / {{ total_expenses }} * 100).toFixed(1);
+                            return `${context.label}: $${value.toFixed(2)} (${percent}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+ 
+    document.getElementById('exportCSV').addEventListener('click', function() {
+        const table = document.getElementById('vendorTable');
+        const rows = table.querySelectorAll('tr');
+        let csv = [];
+        
+        for (let i = 0; i < rows.length; i++) {
+            const row = [], cols = rows[i].querySelectorAll('td, th');
+            
+            for (let j = 0; j < cols.length; j++) {
+                let text = cols[j].innerText.replace(/\$/g, '').replace(/,/g, '');
+                text = '"' + text + '"';
+                row.push(text);
+            }
+            
+            csv.push(row.join(','));
+        }
+        
+        const csvContent = 'data:text/csv;charset=utf-8,' + csv.join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', 'expense_analysis.csv');
+        document.body.appendChild(link);
+        
+        link.click();
+        document.body.removeChild(link);
+    });
+    
+    document.getElementById('printReport').addEventListener('click', function() {
+        window.print();
+    });
+});
+</script>
+{% endblock %}

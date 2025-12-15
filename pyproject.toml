@@ -1,0 +1,71 @@
+[project]
+name = "burdells_dogs_db"
+version = "2.0.0"
+description = "Modernized Burdell's Dogs Adoption System"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "flask>=3.1.0",
+    "python-dotenv>=1.0.0",
+    "python-dateutil>=2.8.2",
+    "pymysql>=1.1.0",
+    "cryptography>=41.0.0",
+    # Modern Backend Stack
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "sqlmodel>=0.0.16",
+    "asyncmy>=0.2.9",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "httpx>=0.27.0",
+    "authlib>=1.3.0",
+    "python-multipart>=0.0.9",
+    "bcrypt==4.0.1",
+    # Workaround for greenlet 3.3.0 missing aarch64 wheels/sdist
+    "greenlet<3.3.0",
+    # Settings
+    "pydantic-settings>=2.0.0",
+    # Production Server
+    "gunicorn>=21.2.0"
+]
+
+[project.scripts]
+start = "run:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.8.0",
+    "types-python-dateutil",
+    "types-pymysql",
+    "types-passlib",
+    "pytest-asyncio>=0.23.0",
+    "aiosqlite>=0.20.0"
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+exclude = ["app/"]  # Legacy code is too dynamic for strict mypy initially
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::pytest.PytestRemovedIn9Warning"
+]
+
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.hatch.build.targets.wheel]
+packages = ["app", "backend"]

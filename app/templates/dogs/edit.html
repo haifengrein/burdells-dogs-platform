@@ -1,0 +1,241 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit {{ dog.name }} | Burdell's Devoted Dogs{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('dogs.detail', dog_id=dog.dogID) }}">Dog Details</a></li>
+                <li class="breadcrumb-item active">Edit Dog</li>
+            </ol>
+        </nav>
+        <h1 class="mb-0">Edit {{ dog.name }}</h1>
+        <p class="text-muted">Dog ID: {{ dog.dogID }}</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('dogs.detail', dog_id=dog.dogID) }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dog Details
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Edit Dog Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('dogs.edit', dog_id=dog.dogID) }}" class="needs-validation" novalidate>
+           
+                    <div class="mb-3">
+                        <label for="sex" class="form-label">Sex <span class="text-danger">*</span></label>
+                        {% if dog.sex == 'Unknown' %}
+                        <select class="form-select" id="sex" name="sex" required>
+                            <option value="Male" {% if dog.sex == 'Male' %}selected{% endif %}>Male</option>
+                            <option value="Female" {% if dog.sex == 'Female' %}selected{% endif %}>Female</option>
+                            <option value="Unknown" {% if dog.sex == 'Unknown' %}selected{% endif %}>Unknown</option>
+                        </select>
+                        <div class="invalid-feedback">
+                            Please select the dog's sex.
+                        </div>
+                        {% else %}
+                        <input type="text" class="form-control" value="{{ dog.sex }}" readonly>
+                        <input type="hidden" name="sex" value="{{ dog.sex }}">
+                        <small class="form-text text-muted">Sex cannot be changed once set.</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="breed" class="form-label">Breed <span class="text-danger">*</span></label>
+                        {% set is_unknown_or_mixed = False %}
+                        {% for dog_breed in dog_breeds %}
+                            {% if dog_breed.name in ['Unknown', 'Mixed'] %}
+                                {% set is_unknown_or_mixed = True %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if is_unknown_or_mixed %}
+                        <select class="form-select" id="breed" name="breed" required multiple>
+                            {% for breed in breeds %}
+                            <option value="{{ breed.breedID }}" 
+                                {% if breed.breedID in selected_breed_ids %}selected{% endif %}>
+                                {{ breed.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            Please select at least one breed.
+                        </div>
+                        <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple breeds.</small>
+                        {% else %}
+                        <div>
+                            {% for dog_breed in dog_breeds %}
+                            <span class="badge bg-primary me-1">{{ dog_breed.name }}</span>
+                            {% endfor %}
+                            <input type="hidden" name="breed" value="{{ selected_breed_ids|join(',') }}">
+                        </div>
+                        <small class="form-text text-muted">Breed cannot be changed for specific breeds.</small>
+                        {% endif %}
+                    </div>
+
+             
+                    <div class="mb-3">
+                        <label for="alteration_status" class="form-label">Alteration Status <span class="text-danger">*</span></label>
+                        {% if not dog.alteration_status %}
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="alteration_status" name="alteration_status" {% if dog.alteration_status %}checked{% endif %}>
+                            <label class="form-check-label" for="alteration_status">Altered</label>
+                        </div>
+                        <small class="form-text text-muted">Check if the dog has been altered.</small>
+                        {% else %}
+                        <input type="text" class="form-control" value="Altered" readonly>
+                        <input type="hidden" name="alteration_status" value="true">
+                        <small class="form-text text-muted">Once altered, this status cannot be changed.</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="age_at_time_of_surrender" class="form-label">Age at Surrender (months) <span class="text-danger">*</span></label>
+                        {% if dog.age_at_time_of_surrender == 0 %}
+                        <input type="number" class="form-control" id="age_at_time_of_surrender" name="age_at_time_of_surrender" min="0" value="{{ dog.age_at_time_of_surrender }}" required>
+                        <div class="invalid-feedback">
+                            Please provide a valid age.
+                        </div>
+                        {% else %}
+                        <input type="text" class="form-control" value="{{ dog.age_at_time_of_surrender }} months" readonly>
+                        <input type="hidden" name="age_at_time_of_surrender" value="{{ dog.age_at_time_of_surrender }}">
+                        <small class="form-text text-muted">Age cannot be changed once set.</small>
+                        {% endif %}
+                    </div>
+
+                
+                    <div class="mb-3">
+                        <label for="adoptability_status" class="form-label">Adoptability Status <span class="text-danger">*</span></label>
+                        <select class="form-select" id="adoptability_status" name="adoptability_status" required>
+                            <option value="Available" {% if dog.adoptability_status == 'Available' %}selected{% endif %}>Available</option>
+                            <option value="Not Available" {% if dog.adoptability_status == 'Not Available' %}selected{% endif %}>Not Available</option>
+                        </select>
+                        <div class="invalid-feedback">
+                            Please select the adoptability status.
+                        </div>
+                        <small class="form-text text-muted">Note: A dog must be altered and microchipped to be available for adoption.</small>
+                    </div>
+
+               
+                    {% if not microchip and user_is_adult %}
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Microchip Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="microchip_ID" class="form-label">Microchip ID</label>
+                                        <input type="text" class="form-control" id="microchip_ID" name="microchip_ID">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="microchip_vendor_ID" class="form-label">Microchip Vendor</label>
+                                        <select class="form-select" id="microchip_vendor_ID" name="microchip_vendor_ID">
+                                            <option value="">Select vendor</option>
+                                            {% for vendor in microchip_vendors %}
+                                            <option value="{{ vendor.id }}">{{ vendor.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+ 
+                    <div class="mb-4">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="4">{{ dog.description }}</textarea>
+                        <small class="form-text text-muted">Include any additional information about the dog.</small>
+                    </div>
+
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('dogs.detail', dog_id=dog.dogID) }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+   
+        const form = document.querySelector('form');
+        const submitButton = form.querySelector('button[type="submit"]');
+        
+        form.addEventListener('submit', function() {
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+        });
+  
+        const breedSelect = document.getElementById('breed');
+        if (breedSelect) {
+            breedSelect.addEventListener('change', function() {
+                const selectedOptions = Array.from(this.selectedOptions).map(option => option.text);
+                const unknownMixedSelected = selectedOptions.some(option => option === 'Unknown' || option === 'Mixed');
+                
+                if (unknownMixedSelected && selectedOptions.length > 1) {
+                    Array.from(this.options).forEach(option => {
+                        if (option.text !== 'Unknown' && option.text !== 'Mixed') {
+                            option.selected = false;
+                        }
+                    });
+                }
+            });
+        }
+        
+       
+        const alterationCheck = document.getElementById('alteration_status');
+        const microchipInput = document.getElementById('microchip_ID');
+        const adoptabilitySelect = document.getElementById('adoptability_status');
+        
+        function updateAdoptabilityStatus() {
+            let isAltered = alterationCheck ? alterationCheck.checked : {{ 'true' if dog.alteration_status else 'false' }};
+            let hasMicrochip = microchipInput ? microchipInput.value.trim() !== '' : {{ 'true' if microchip else 'false' }};
+            
+            if (!isAltered || !hasMicrochip) {
+                const availableOption = adoptabilitySelect.querySelector('option[value="Available"]');
+                availableOption.disabled = true;
+                
+                if (adoptabilitySelect.value === 'Available') {
+                    adoptabilitySelect.value = 'Not Available';
+                }
+            } else {
+                const availableOption = adoptabilitySelect.querySelector('option[value="Available"]');
+                availableOption.disabled = false;
+            }
+        }
+        
+        if (alterationCheck) {
+            alterationCheck.addEventListener('change', updateAdoptabilityStatus);
+        }
+        
+        if (microchipInput) {
+            microchipInput.addEventListener('input', updateAdoptabilityStatus);
+        }
+        
+
+        updateAdoptabilityStatus();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends "layout.html" %}
+
+{% block title %}Volunteer Lookup | Burdell's Devoted Dogs{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Reports</a></li>
+                <li class="breadcrumb-item active">Volunteer Lookup</li>
+            </ol>
+        </nav>
+        <h1 class="mb-0">Volunteer Lookup</h1>
+        <p class="text-muted">Search for volunteers by name</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Search for Volunteers</h5>
+    </div>
+    <div class="card-body">
+        <form id="search-form" method="GET" action="{{ url_for('reports.volunteer_lookup') }}">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control form-control-lg" id="search" name="search" 
+                            placeholder="Enter name to search..." value="{{ search_term }}" autofocus>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search me-1"></i> Search
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        Search by first name or last name (case insensitive, partial matches allowed)
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    {% if search_performed %}
+                    <div class="d-grid">
+                        <a href="{{ url_for('reports.volunteer_lookup') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> Clear Search
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if search_performed %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Search Results</h5>
+        <span class="badge bg-primary">{{ volunteers|length }} Found</span>
+    </div>
+    <div class="card-body p-0">
+        {% if volunteers %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Email</th>
+                        <th>Phone Number</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for volunteer in volunteers %}
+                    <tr>
+                        <td>{{ volunteer.firstname }}</td>
+                        <td>{{ volunteer.lastname }}</td>
+                        <td>
+                            <a href="mailto:{{ volunteer.email }}">
+                                {{ volunteer.email }}
+                            </a>
+                        </td>
+                        <td>
+                            <a href="tel:{{ volunteer.phone_number }}">
+                                {{ volunteer.phone_number }}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary copy-contact" 
+                                        data-name="{{ volunteer.firstname }} {{ volunteer.lastname }}"
+                                        data-email="{{ volunteer.email }}"
+                                        data-phone="{{ volunteer.phone_number }}">
+                                    <i class="fas fa-copy me-1"></i> Copy Contact
+                                </button>
+                                <a href="sms:{{ volunteer.phone_number }}" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-comment me-1"></i> Text
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info m-3">
+            <i class="fas fa-info-circle me-2"></i> No volunteers found matching '{{ search_term }}'.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="card bg-light">
+    <div class="card-body text-center p-5">
+        <i class="fas fa-users display-1 text-primary mb-3"></i>
+        <h3>Search for Volunteers</h3>
+        <p class="lead text-muted">Enter any part of a volunteer's name in the search box above to find their contact information.</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="contactToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="fas fa-check-circle text-success me-2"></i>
+            <strong class="me-auto">Contact Copied</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            Contact information copied to clipboard.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('search').focus();
+    const copyBtns = document.querySelectorAll('.copy-contact');
+    const contactToast = document.getElementById('contactToast');
+    
+    copyBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const name = this.getAttribute('data-name');
+            const email = this.getAttribute('data-email');
+            const phone = this.getAttribute('data-phone');
+            
+            const contactInfo = `Name: ${name}\nEmail: ${email}\nPhone: ${phone}`;
+            navigator.clipboard.writeText(contactInfo).then(function() {
+                const toast = new bootstrap.Toast(contactToast);
+                toast.show();
+            }, function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Failed to copy contact information to clipboard');
+            });
+        });
+    });
+
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search');
+    
+    searchForm.addEventListener('submit', function(event) {
+        if (!searchInput.value.trim()) {
+            event.preventDefault();
+            searchInput.classList.add('is-invalid');
+        } else {
+            searchInput.classList.remove('is-invalid');
+        }
+    });
+    
+    searchInput.addEventListener('input', function() {
+        if (this.value.trim()) {
+            this.classList.remove('is-invalid');
+        }
+    });
+});
+</script>
+{% endblock %}

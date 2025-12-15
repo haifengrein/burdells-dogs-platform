@@ -1,0 +1,246 @@
+{% extends "layout.html" %}
+
+{% block title %}Review Adoption Applications | Burdell's Devoted Dogs{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Review Adoption Applications</li>
+            </ol>
+        </nav>
+        <h1 class="mb-0">Review Adoption Applications</h1>
+        <p class="text-muted">Approve or reject pending adoption applications</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+{% if applications %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Pending Applications</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Application Date</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Household Size</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in applications %}
+                    <tr>
+                        <td>{{ app.appDate }}</td>
+                        <td>{{ app.fname }} {{ app.lname }}</td>
+                        <td>{{ app.email }}</td>
+                        <td>{{ app.phone }}</td>
+                        <td>{{ app.household }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#viewApplicationModal"
+                                    data-app-id="{{ app.appDate }}"
+                                    data-app-email="{{ app.email }}"
+                                    data-app-name="{{ app.fname }} {{ app.lname }}"
+                                    data-app-phone="{{ app.phone }}"
+                                    data-app-size="{{ app.household }}"
+                                    data-app-address="{{ app.street }}, {{ app.city }}, {{ app.state }} {{ app.zip }}">
+                                <i class="fas fa-eye me-1"></i> View
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+{% if pagination is defined and pagination.pages > 1 %}
+<nav class="mt-4" aria-label="Application pagination">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if pagination.page == 1 else '' }}">
+            {% set args = request.args.copy() %}
+            {% if 'page' in args %}
+            {% do args.pop('page') %}
+            {% endif %}
+            <a class="page-link" href="{{ url_for('adoption.review_apps', page=pagination.page-1, **args) if pagination.page > 1 else '#' }}">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>
+        
+        {% for page_num in range(1, pagination.pages + 1) %}
+        <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
+            {% set args = request.args.copy() %}
+            {% if 'page' in args %}
+            {% do args.pop('page') %}
+            {% endif %}
+            <a class="page-link" href="{{ url_for('adoption.review_apps', page=page_num, **args) }}">
+                {{ page_num }}
+            </a>
+        </li>
+        {% endfor %}
+        
+        <li class="page-item {{ 'disabled' if pagination.page == pagination.pages else '' }}">
+            {% set args = request.args.copy() %}
+            {% if 'page' in args %}
+            {% do args.pop('page') %}
+            {% endif %}
+            <a class="page-link" href="{{ url_for('adoption.review_apps', page=pagination.page+1, **args) if pagination.page < pagination.pages else '#' }}">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+
+
+<div class="modal fade" id="viewApplicationModal" tabindex="-1" aria-labelledby="viewApplicationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewApplicationModalLabel">Application Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="section-heading">Applicant Information</h6>
+                        <p><strong>Name:</strong> <span id="modal-name"></span></p>
+                        <p><strong>Email:</strong> <span id="modal-email"></span></p>
+                        <p><strong>Phone:</strong> <span id="modal-phone"></span></p>
+                        <p><strong>Household Size:</strong> <span id="modal-size"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="section-heading">Address</h6>
+                        <p id="modal-address"></p>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-12">
+                        <h6 class="section-heading">Decision</h6>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <form id="approveForm" method="POST" action="{{ url_for('adoption.approve') }}">
+                                    <input type="hidden" id="approve-app-date" name="applicationDate">
+                                    <input type="hidden" id="approve-app-email" name="adopterEmail">
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="fas fa-check-circle me-1"></i> Approve Application
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="col-md-6">
+                                <button class="btn btn-danger w-100" data-bs-toggle="collapse" data-bs-target="#rejectReasonForm">
+                                    <i class="fas fa-times-circle me-1"></i> Reject Application
+                                </button>
+                            </div>
+                        </div>
+                        <div class="collapse mt-3" id="rejectReasonForm">
+                            <form id="rejectForm" method="POST" action="{{ url_for('adoption.reject') }}">
+                                <input type="hidden" id="reject-app-date" name="applicationDate">
+                                <input type="hidden" id="reject-app-email" name="adopterEmail">
+                                <div class="mb-3">
+                                    <label for="reason" class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="reason" name="reason" rows="3" required></textarea>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-times-circle me-1"></i> Confirm Rejection
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i> No pending adoption applications found.
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const viewApplicationModal = document.getElementById('viewApplicationModal');
+    if (viewApplicationModal) {
+        viewApplicationModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            
+            
+            const appDate = button.getAttribute('data-app-id');
+            const appEmail = button.getAttribute('data-app-email');
+            const appName = button.getAttribute('data-app-name');
+            const appPhone = button.getAttribute('data-app-phone');
+            const appSize = button.getAttribute('data-app-size');
+            const appAddress = button.getAttribute('data-app-address');
+            
+            
+            const modalName = viewApplicationModal.querySelector('#modal-name');
+            const modalEmail = viewApplicationModal.querySelector('#modal-email');
+            const modalPhone = viewApplicationModal.querySelector('#modal-phone');
+            const modalSize = viewApplicationModal.querySelector('#modal-size');
+            const modalAddress = viewApplicationModal.querySelector('#modal-address');
+            
+            modalName.textContent = appName;
+            modalEmail.textContent = appEmail;
+            modalPhone.textContent = appPhone;
+            modalSize.textContent = appSize;
+            modalAddress.textContent = appAddress;
+            
+   
+            document.getElementById('approve-app-date').value = appDate;
+            document.getElementById('approve-app-email').value = appEmail;
+            document.getElementById('reject-app-date').value = appDate;
+            document.getElementById('reject-app-email').value = appEmail;
+        });
+    }
+    
+    
+    viewApplicationModal.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('reason').value = '';
+        
+        
+        const rejectReasonCollapse = bootstrap.Collapse.getInstance(document.getElementById('rejectReasonForm'));
+        if (rejectReasonCollapse) {
+            rejectReasonCollapse.hide();
+        }
+    });
+    
+    
+    const rejectForm = document.getElementById('rejectForm');
+    if (rejectForm) {
+        rejectForm.addEventListener('submit', function(event) {
+            if (!this.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            this.classList.add('was-validated');
+        });
+    }
+});
+</script>
+{% endblock %}

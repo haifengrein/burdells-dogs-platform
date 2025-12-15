@@ -1,0 +1,428 @@
+{% extends "layout.html" %}
+
+{% block title %}All Applications | Burdell's Devoted Dogs{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">All Applications</li>
+            </ol>
+        </nav>
+        <h1 class="mb-0">
+            <i class="fas fa-clipboard-list me-2 text-primary"></i>All Adoption Applications
+        </h1>
+        <p class="text-muted">View and manage all adoption applications by status</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('adoption.add_app') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-1"></i> Add New Application
+        </a>
+    </div>
+</div>
+
+
+<ul class="nav nav-tabs mb-4" id="applicationTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <a class="nav-link active" id="pending-tab" data-bs-toggle="tab" href="#pending" role="tab" aria-controls="pending" aria-selected="true">
+            <i class="fas fa-clock me-1 text-warning"></i> Pending 
+            <span class="badge bg-warning text-dark">{{ applications.pending|length }}</span>
+        </a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link" id="approved-tab" data-bs-toggle="tab" href="#approved" role="tab" aria-controls="approved" aria-selected="false">
+            <i class="fas fa-check-circle me-1 text-success"></i> Approved 
+            <span class="badge bg-success">{{ applications.approved|length }}</span>
+        </a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link" id="rejected-tab" data-bs-toggle="tab" href="#rejected" role="tab" aria-controls="rejected" aria-selected="false">
+            <i class="fas fa-times-circle me-1 text-danger"></i> Rejected 
+            <span class="badge bg-danger">{{ applications.rejected|length }}</span>
+        </a>
+    </li>
+</ul>
+
+
+<div class="tab-content" id="applicationTabsContent">
+
+    <div class="tab-pane fade show active" id="pending" role="tabpanel" aria-labelledby="pending-tab">
+        {% if applications.pending %}
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-hourglass-half me-2"></i> Pending Applications
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Household Size</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for app in applications.pending %}
+                            <tr>
+                                <td>{{ app.appDate }}</td>
+                                <td>{{ app.fname }} {{ app.lname }}</td>
+                                <td><a href="mailto:{{ app.email }}">{{ app.email }}</a></td>
+                                <td>{{ app.phone }}</td>
+                                <td>{{ app.household }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-primary view-details-btn" data-bs-toggle="modal" data-bs-target="#applicationDetailsModal" data-app-id="{{ loop.index }}">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% if is_executive_director %}
+                                        <button type="button" class="btn btn-outline-success approve-btn" data-bs-toggle="modal" data-bs-target="#approveModal" data-app-date="{{ app.appDate }}" data-app-email="{{ app.email }}">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger reject-btn" data-bs-toggle="modal" data-bs-target="#rejectModal" data-app-date="{{ app.appDate }}" data-app-email="{{ app.email }}">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> No pending applications at this time.
+        </div>
+        {% endif %}
+    </div>
+  
+    <div class="tab-pane fade" id="approved" role="tabpanel" aria-labelledby="approved-tab">
+        {% if applications.approved %}
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-check-circle me-2"></i> Approved Applications
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Application Date</th>
+                                <th>Approved Date</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for app in applications.approved %}
+                            <tr>
+                                <td>{{ app.appDate }}</td>
+                                <td>{{ app.reviewDate }}</td>
+                                <td>{{ app.fname }} {{ app.lname }}</td>
+                                <td><a href="mailto:{{ app.email }}">{{ app.email }}</a></td>
+                                <td>{{ app.phone }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-primary view-details-btn" data-bs-toggle="modal" data-bs-target="#applicationDetailsModal" data-app-id="{{ loop.index }}" data-status="approved">
+                                        <i class="fas fa-eye"></i> View Details
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> No approved applications at this time.
+        </div>
+        {% endif %}
+    </div>
+    
+
+    <div class="tab-pane fade" id="rejected" role="tabpanel" aria-labelledby="rejected-tab">
+        {% if applications.rejected %}
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-times-circle me-2"></i> Rejected Applications
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Application Date</th>
+                                <th>Rejected Date</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Reason</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for app in applications.rejected %}
+                            <tr>
+                                <td>{{ app.appDate }}</td>
+                                <td>{{ app.reviewDate }}</td>
+                                <td>{{ app.fname }} {{ app.lname }}</td>
+                                <td><a href="mailto:{{ app.email }}">{{ app.email }}</a></td>
+                                <td>{{ app.reason }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-primary view-details-btn" data-bs-toggle="modal" data-bs-target="#applicationDetailsModal" data-app-id="{{ loop.index }}" data-status="rejected">
+                                        <i class="fas fa-eye"></i> View Details
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> No rejected applications at this time.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+
+<div class="modal fade" id="applicationDetailsModal" tabindex="-1" aria-labelledby="applicationDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="applicationDetailsModalLabel">Application Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="section-heading">Applicant Information</h6>
+                        <p><strong>Name:</strong> <span id="modal-name"></span></p>
+                        <p><strong>Email:</strong> <span id="modal-email"></span></p>
+                        <p><strong>Phone:</strong> <span id="modal-phone"></span></p>
+                        <p><strong>Household Size:</strong> <span id="modal-household"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="section-heading">Address</h6>
+                        <p><strong>Street:</strong> <span id="modal-street"></span></p>
+                        <p><strong>City:</strong> <span id="modal-city"></span></p>
+                        <p><strong>State:</strong> <span id="modal-state"></span></p>
+                        <p><strong>Zip Code:</strong> <span id="modal-zipcode"></span></p>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6 class="section-heading">Application Details</h6>
+                        <p><strong>Application Date:</strong> <span id="modal-app-date"></span></p>
+                        <p id="modal-review-date-container"><strong>Review Date:</strong> <span id="modal-review-date"></span></p>
+                    </div>
+                    <div class="col-md-6" id="modal-reason-container">
+                        <h6 class="section-heading">Rejection Reason</h6>
+                        <p id="modal-reason"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="approveModalLabel">Approve Application</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('adoption.approve') }}" method="POST">
+                <div class="modal-body">
+                    <p>Are you sure you want to approve this application?</p>
+                    <input type="hidden" name="applicationDate" id="approve-app-date">
+                    <input type="hidden" name="adopterEmail" id="approve-app-email">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Approve</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="rejectModalLabel">Reject Application</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('adoption.reject') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="reject-reason" class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="reject-reason" name="reason" rows="3" required></textarea>
+                        <div class="form-text">Please provide a reason for rejecting this application.</div>
+                    </div>
+                    <input type="hidden" name="applicationDate" id="reject-app-date">
+                    <input type="hidden" name="adopterEmail" id="reject-app-email">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        {% if not applications.pending and not applications.approved and not applications.rejected %}
+
+        document.getElementById('applicationTabsContent').innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i> There are currently no adoption applications in the system.</div>';
+        {% endif %}
+        const pendingApps = [
+            {% for app in applications.pending %}
+            {
+                name: "{{ app.fname }} {{ app.lname }}",
+                email: "{{ app.email }}",
+                phone: "{{ app.phone }}",
+                household: {{ app.household|default(0) }},
+                street: "{{ app.street|default('') }}",
+                city: "{{ app.city|default('') }}",
+                state: "{{ app.state|default('') }}",
+                zip: "{{ app.zip|default('') }}",
+                appDate: "{{ app.appDate }}"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+    
+        const approvedApps = [
+            {% for app in applications.approved %}
+            {
+                name: "{{ app.fname }} {{ app.lname }}",
+                email: "{{ app.email }}",
+                phone: "{{ app.phone }}",
+                household: {{ app.household|default(0) }},
+                street: "{{ app.street|default('') }}",
+                city: "{{ app.city|default('') }}",
+                state: "{{ app.state|default('') }}",
+                zip: "{{ app.zip|default('') }}",
+                appDate: "{{ app.appDate }}",
+                reviewDate: "{{ app.reviewDate|default('') }}"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+
+        const rejectedApps = [
+            {% for app in applications.rejected %}
+            {
+                name: "{{ app.fname }} {{ app.lname }}",
+                email: "{{ app.email }}",
+                phone: "{{ app.phone }}",
+                household: {{ app.household|default(0) }},
+                street: "{{ app.street|default('') }}",
+                city: "{{ app.city|default('') }}",
+                state: "{{ app.state|default('') }}",
+                zip: "{{ app.zip|default('') }}",
+                appDate: "{{ app.appDate }}",
+                reviewDate: "{{ app.reviewDate|default('') }}",
+                reason: "{{ app.reason|default('No reason provided') }}"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+
+        document.querySelectorAll('.view-details-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const appId = parseInt(this.getAttribute('data-app-id')) - 1;
+                const status = this.getAttribute('data-status') || 'pending';
+                
+   
+                let app;
+                if (status === 'approved') {
+                    app = approvedApps[appId];
+                    document.getElementById('modal-review-date-container').style.display = 'block';
+                    document.getElementById('modal-reason-container').style.display = 'none';
+                } else if (status === 'rejected') {
+                    app = rejectedApps[appId];
+                    document.getElementById('modal-review-date-container').style.display = 'block';
+                    document.getElementById('modal-reason-container').style.display = 'block';
+                } else {
+                    app = pendingApps[appId];
+                    document.getElementById('modal-review-date-container').style.display = 'none';
+                    document.getElementById('modal-reason-container').style.display = 'none';
+                }
+                
+  
+                document.getElementById('modal-name').textContent = app.name;
+                document.getElementById('modal-email').textContent = app.email;
+                document.getElementById('modal-phone').textContent = app.phone;
+                document.getElementById('modal-household').textContent = app.household;
+                document.getElementById('modal-street').textContent = app.street;
+                document.getElementById('modal-city').textContent = app.city;
+                document.getElementById('modal-state').textContent = app.state;
+                document.getElementById('modal-zipcode').textContent = app.zip;
+                document.getElementById('modal-app-date').textContent = app.appDate;
+                
+                if (status === 'approved' || status === 'rejected') {
+                    document.getElementById('modal-review-date').textContent = app.reviewDate;
+                }
+                
+                if (status === 'rejected') {
+                    document.getElementById('modal-reason').textContent = app.reason;
+                }
+            });
+        });
+        
+
+        document.querySelectorAll('.approve-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const appDate = this.getAttribute('data-app-date');
+                const appEmail = this.getAttribute('data-app-email');
+                
+                document.getElementById('approve-app-date').value = appDate;
+                document.getElementById('approve-app-email').value = appEmail;
+            });
+        });
+        
+    
+        document.querySelectorAll('.reject-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const appDate = this.getAttribute('data-app-date');
+                const appEmail = this.getAttribute('data-app-email');
+                
+                document.getElementById('reject-app-date').value = appDate;
+                document.getElementById('reject-app-email').value = appEmail;
+            });
+        });
+    });
+</script>
+{% endblock %}

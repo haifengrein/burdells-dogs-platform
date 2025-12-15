@@ -1,0 +1,73 @@
+
+<div class="dog-card compact-card bg-light">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-dog me-2 text-primary"></i>{{ dog.name }}
+        </h5>
+        {% if dog.adoptability_status == 'Available' %}
+        <span class="badge bg-success text-light"><i class="fas fa-check-circle me-1"></i> Available</span>
+        {% elif dog.adoptability_status == 'Not Available' %}
+        <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i> Not Available</span>
+        {% elif dog.adoptability_status == 'Adopted' %}
+        <span class="badge bg-info text-light"><i class="fas fa-home me-1"></i> Adopted</span>
+        {% endif %}
+    </div>
+    <div class="card-body p-3">
+        <table class="table table-sm table-borderless mb-0">
+            <tr>
+                <td class="text-muted"><i class="fas fa-id-card text-primary"></i> ID:</td>
+                <td>{{ dog.dogID }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted"><i class="fas fa-venus-mars text-primary"></i> Sex:</td>
+                <td>{{ dog.sex }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted"><i class="fas fa-cut text-primary"></i> Altered:</td>
+                <td>
+                    {% if dog.alteration_status == 1 %}
+                    <span class="text-success"><i class="fas fa-check"></i> Yes</span>
+                    {% else %}
+                    <span class="text-danger"><i class="fas fa-times"></i> No</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="text-muted"><i class="fas fa-birthday-cake text-primary"></i> Age:</td>
+                <td>
+                    {% if dog.age_at_time_of_surrender >= 12 %}
+                        {{ (dog.age_at_time_of_surrender / 12)|int }} year{% if (dog.age_at_time_of_surrender / 12)|int != 1 %}s{% endif %}
+                        {% if dog.age_at_time_of_surrender % 12 != 0 %}
+                            {{ dog.age_at_time_of_surrender % 12 }} month{% if dog.age_at_time_of_surrender % 12 != 1 %}s{% endif %}
+                        {% endif %}
+                    {% else %}
+                        {{ dog.age_at_time_of_surrender }} month{% if dog.age_at_time_of_surrender != 1 %}s{% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="text-muted"><i class="fas fa-calendar text-primary"></i> Surrendered:</td>
+                <td>{{ dog.surrender_date }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted"><i class="fas fa-tags text-primary"></i> Breed:</td>
+                <td>{{ dog.breeds }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted"><i class="fas fa-microchip text-primary"></i> Microchipped:</td>
+                <td>
+                    {% if dog.microchipped %}
+                    <span class="text-success"><i class="fas fa-check"></i> Yes</span>
+                    {% else %}
+                    <span class="text-danger"><i class="fas fa-times"></i> No</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="card-footer p-2 text-center">
+        <a href="{{ url_for('dogs.detail', dog_id=dog.dogID) }}" class="btn btn-primary">
+            <i class="fas fa-paw"></i> VIEW PROFILE
+        </a>
+    </div>
+</div>

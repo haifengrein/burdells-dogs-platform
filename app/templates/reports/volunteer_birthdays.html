@@ -1,0 +1,458 @@
+{% extends "layout.html" %}
+
+{% block title %}Volunteer Birthdays | Burdell's Devoted Dogs{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Reports</a></li>
+                <li class="breadcrumb-item active">Volunteer Birthdays</li>
+            </ol>
+        </nav>
+        <h1 class="mb-0">Volunteer Birthdays</h1>
+        <p class="text-muted">
+            {% if selected_month and selected_year %}
+            {{ selected_month }} {{ selected_year }} birthdays
+            {% else %}
+            Monthly birthday celebration schedule
+            {% endif %}
+        </p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Select Month and Year</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('reports.volunteer_birthdays') }}" class="row g-3">
+            <div class="col-md-5">
+                <label for="month" class="form-label">Month</label>
+                <select class="form-select" id="month" name="month">
+                    {% for month_num, month_name in months %}
+                    <option value="{{ month_num }}" {% if selected_month_num == month_num %}selected{% endif %}>
+                        {{ month_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="year" class="form-label">Year</label>
+                <select class="form-select" id="year" name="year">
+                    {% for year in available_years %}
+                    <option value="{{ year }}" {% if selected_year == year %}selected{% endif %}>
+                        {{ year }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter me-1"></i> Apply Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    {% if selected_month and selected_year %}
+                    {{ selected_month }} {{ selected_year }} Birthdays
+                    {% else %}
+                    Birthdays This Month
+                    {% endif %}
+                </h5>
+                {% if volunteers %}
+                <button class="btn btn-sm btn-outline-primary" id="printBirthdays">
+                    <i class="fas fa-print me-1"></i> Print
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if volunteers %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Email</th>
+                                <th class="text-center">Milestone Birthday</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for volunteer in volunteers %}
+                            <tr {% if volunteer.milestone == 'Yes' %}class="table-success"{% endif %}>
+                                <td>{{ volunteer.firstname }}</td>
+                                <td>{{ volunteer.lastname }}</td>
+                                <td>
+                                    <a href="mailto:{{ volunteer.email }}">
+                                        {{ volunteer.email }}
+                                    </a>
+                                </td>
+                                <td class="text-center">
+                                    {% if volunteer.milestone == 'Yes' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-gift me-1"></i> Yes
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info m-3">
+                    <i class="fas fa-info-circle me-2"></i> No volunteer birthdays this month!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Birthday Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="stats-card mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="stats-icon text-primary">
+                            <i class="fas fa-birthday-cake"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h6>Total Birthdays This Month</h6>
+                            <div class="h3">{{ volunteers|length }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-card mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="stats-icon text-success">
+                            <i class="fas fa-gift"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h6>Milestone Birthdays</h6>
+                            <div class="h3">{{ milestone_count }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-card">
+                    <div class="d-flex align-items-center">
+                        <div class="stats-icon text-info">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h6>Email All Birthday Volunteers</h6>
+                            <div>
+                                {% if volunteers %}
+                                <a href="mailto:{% for volunteer in volunteers %}{{ volunteer.email }}{% if not loop.last %},{% endif %}{% endfor %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-envelope me-1"></i> Send Email
+                                </a>
+                                {% else %}
+                                <button class="btn btn-sm btn-outline-secondary" disabled>
+                                    <i class="fas fa-envelope me-1"></i> No Volunteers
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if milestone_volunteers and milestone_volunteers|length > 0 %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Milestone Birthdays</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for volunteer in milestone_volunteers %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ volunteer.firstname }} {{ volunteer.lastname }}</h6>
+                            <span class="badge bg-success"><i class="fas fa-gift me-1"></i> Milestone</span>
+                        </div>
+                        <p class="mb-1">
+                            <a href="mailto:{{ volunteer.email }}">{{ volunteer.email }}</a>
+                        </p>
+                        <small>
+                            <button class="btn btn-sm btn-outline-success send-celebration" 
+                                    data-name="{{ volunteer.firstname }}" 
+                                    data-email="{{ volunteer.email }}">
+                                <i class="fas fa-gift me-1"></i> Send Celebration Email
+                            </button>
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Birthday Calendar View -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Birthday Calendar View</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-3 calendar-card">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h6 class="mb-0">{{ selected_month }}</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-bordered mb-0 calendar-table">
+                            <thead class="table-light">
+                                <tr class="text-center">
+                                    <th style="width: 14.28%">Su</th>
+                                    <th style="width: 14.28%">Mo</th>
+                                    <th style="width: 14.28%">Tu</th>
+                                    <th style="width: 14.28%">We</th>
+                                    <th style="width: 14.28%">Th</th>
+                                    <th style="width: 14.28%">Fr</th>
+                                    <th style="width: 14.28%">Sa</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for week in calendar_weeks %}
+                                <tr>
+                                    {% for day in week %}
+                                    <td {% if day.active %}class="bg-light"{% endif %}>
+                                        {% if day.day %}
+                                        <div class="calendar-day position-relative">
+                                            {{ day.day }}
+                                            {% if day.has_birthday %}
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                                                {{ day.birthday_count }}
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="row" id="birthdaysByDay">
+                    {% for day, day_volunteers in birthdays_by_day.items() %}
+                    {% if day_volunteers|length > 0 %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0">{{ selected_month }} {{ day }}</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    {% for volunteer in day_volunteers %}
+                                    <li class="list-group-item">
+                                        {{ volunteer.firstname }} {{ volunteer.lastname }}
+                                        {% if volunteer.milestone == 'Yes' %}
+                                        <span class="badge bg-success">Milestone</span>
+                                        {% endif %}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="emailTemplateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Birthday Celebration Email</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="emailTo" class="form-label">To:</label>
+                    <input type="email" class="form-control" id="emailTo" readonly>
+                </div>
+                <div class="mb-3">
+                    <label for="emailSubject" class="form-label">Subject:</label>
+                    <input type="text" class="form-control" id="emailSubject" value="Happy Birthday from Burdell's Devoted Dogs!">
+                </div>
+                <div class="mb-3">
+                    <label for="emailBody" class="form-label">Message:</label>
+                    <textarea class="form-control" id="emailBody" rows="6"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="#" class="btn btn-primary" id="sendBirthdayEmail">
+                    <i class="fas fa-paper-plane me-1"></i> Send Email
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}">
+<style>
+    .stats-card {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .stats-icon {
+        background-color: #e8f0fe;
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-right: 1rem;
+    }
+    
+    .stats-info {
+        flex: 1;
+    }
+    
+    .stats-info h6 {
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+    }
+    
+    .calendar-card {
+        min-width: 300px;
+        max-width: 100%;
+    }
+    
+    .calendar-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    
+    .calendar-table th,
+    .calendar-table td {
+        text-align: center;
+        padding: 0.25rem;
+        font-size: 0.85rem;
+        width: 14.28%;
+    }
+    
+    .calendar-day {
+        min-height: 24px;
+        text-align: center;
+        padding: 2px;
+        position: relative;
+    }
+    
+    .badge {
+        font-size: 0.6rem;
+    }
+    
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        
+        .card, .card * {
+            visibility: visible;
+        }
+        
+        .card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+        
+        .card-header button {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    const monthSelect = document.getElementById('month');
+    const yearSelect = document.getElementById('year');
+    const birthdayForm = document.querySelector('form');
+    birthdayForm.addEventListener('submit', function(event) {
+        birthdayForm.submit();
+    });
+    
+    const printBtn = document.getElementById('printBirthdays');
+    if (printBtn) {
+        printBtn.addEventListener('click', function() {
+            window.print();
+        });
+    }
+    
+    const celebrationBtns = document.querySelectorAll('.send-celebration');
+    const emailTemplateModal = new bootstrap.Modal(document.getElementById('emailTemplateModal'));
+    const emailToField = document.getElementById('emailTo');
+    const emailBodyField = document.getElementById('emailBody');
+    const sendEmailBtn = document.getElementById('sendBirthdayEmail');
+    
+    celebrationBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const name = this.getAttribute('data-name');
+            const email = this.getAttribute('data-email');
+
+            emailToField.value = email;
+
+            emailBodyField.value = `Dear ${name},\n\nHappy Birthday from all of us at Burdell's Devoted Dogs!\n\nThank you for being an amazing volunteer and for all you do to help our furry friends find their forever homes. We're celebrating you today and appreciate your dedication.\n\nWe've included a special gift card for you to enjoy.\n\nBest wishes,\nGeorge P. Burdell\nExecutive Director\nBurdell's Devoted Dogs`;
+
+            sendEmailBtn.href = `mailto:${email}?subject=${encodeURIComponent(document.getElementById('emailSubject').value)}&body=${encodeURIComponent(emailBodyField.value)}`;
+            
+            emailTemplateModal.show();
+        });
+    });
+ 
+    emailBodyField.addEventListener('input', function() {
+        sendEmailBtn.href = `mailto:${emailToField.value}?subject=${encodeURIComponent(document.getElementById('emailSubject').value)}&body=${encodeURIComponent(emailBodyField.value)}`;
+    });
+    
+    document.getElementById('emailSubject').addEventListener('input', function() {
+        sendEmailBtn.href = `mailto:${emailToField.value}?subject=${encodeURIComponent(this.value)}&body=${encodeURIComponent(emailBodyField.value)}`;
+    });
+});
+</script>
+{% endblock %}

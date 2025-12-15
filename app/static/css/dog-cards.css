@@ -1,0 +1,72 @@
+
+.compact-card {
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    overflow: hidden;
+    border: 1px solid #f2e9d8;
+    transition: all 0.2s ease-in-out;
+    height: 100%;
+}
+
+.compact-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.compact-card .card-header {
+    background-color: #f8f3eb;
+    border-bottom: 1px solid #f2e9d8;
+    padding: 0.75rem 1rem;
+}
+
+.compact-card .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #a87c4f;
+}
+
+.compact-card .card-body {
+    padding: 0.75rem 1rem;
+}
+
+.compact-card table {
+    margin-bottom: 0;
+}
+
+.compact-card td {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.9rem;
+    border: none;
+}
+
+.compact-card td:first-child {
+    width: 40%;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.compact-card td i {
+    width: 16px;
+    margin-right: 5px;
+    text-align: center;
+}
+
+.compact-card .card-footer {
+    background-color: #f8f3eb;
+    border-top: 1px solid #f2e9d8;
+    padding: 0.75rem;
+}
+
+.compact-card .card-footer .btn {
+    border-radius: 2rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.5rem 1.5rem;
+}
+
+.compact-card .text-success i,
+.compact-card .text-danger i {
+    margin-right: 3px;
+}

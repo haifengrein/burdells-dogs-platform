@@ -1,0 +1,111 @@
+
+.card .card-header {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card .card-header h5 {
+    margin-bottom: 0;
+}
+
+
+.drill-down-link {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.drill-down-link:hover {
+    text-decoration: underline;
+}
+
+
+.stat-card {
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s ease-in-out;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-card .card-body {
+    padding: 1.5rem;
+}
+
+.stat-card .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.stat-card .display-4 {
+    font-size: 2.5rem;
+    font-weight: 500;
+}
+
+
+
+.report-filters {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.report-filters .form-group {
+    margin-bottom: 0;
+}
+
+
+.report-table {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #212529;
+}
+
+.report-table th {
+    background-color: #f8f9fa;
+    font-weight: 500;
+}
+
+.report-table td, 
+.report-table th {
+    padding: 0.75rem;
+    vertical-align: middle;
+    border-top: 1px solid #dee2e6;
+}
+
+.report-table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .card-header {
+        background-color: transparent !important;
+        color: #000 !important;
+        border-bottom: 1px solid #ccc !important;
+    }
+    
+    body {
+        padding: 0;
+        margin: 0;
+    }
+    
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+}

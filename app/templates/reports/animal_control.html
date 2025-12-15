@@ -1,0 +1,252 @@
+{% extends "layout.html" %}
+
+{% block title %}Animal Control Report | Burdell's Devoted Dogs{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Reports</a></li>
+                <li class="breadcrumb-item active">Animal Control Report</li>
+            </ol>
+        </nav>
+        <h1 class="mb-0">Animal Control Report</h1>
+        <p class="text-muted">Current month and previous six months data for animal control</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Animal Control Monthly Summary</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th class="text-center">Animal Control Surrenders</th>
+                        <th class="text-center">Dogs Adopted (60+ Days)</th>
+                        <th class="text-center">Total Expenses ($)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for month_data in report_data %}
+                    <tr>
+                        <td>{{ month_data.month }}</td>
+                        <td class="text-center">
+                            {% if month_data.ac_surrenders > 0 %}
+                            <a href="{{ url_for('reports.animal_control_drilldown', month=month_data.month, category='surrenders', month_start=month_data.month_start, month_end=month_data.month_end) }}" class="btn btn-sm btn-outline-primary">
+                                {{ month_data.ac_surrenders }}
+                            </a>
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if month_data.adopted_60d > 0 %}
+                            <a href="{{ url_for('reports.animal_control_drilldown', month=month_data.month, category='adopted', month_start=month_data.month_start, month_end=month_data.month_end) }}" class="btn btn-sm btn-outline-primary">
+                                {{ month_data.adopted_60d }}
+                            </a>
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if month_data.expenses > 0 %}
+                            <a href="{{ url_for('reports.animal_control_drilldown', month=month_data.month, category='expenses', month_start=month_data.month_start, month_end=month_data.month_end) }}" class="btn btn-sm btn-outline-primary">
+                                ${{ month_data.expenses | round(2) }}
+                            </a>
+                            {% else %}
+                            $0.00
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Surrenders by Month</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="surrendersChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">60+ Day Adoptions</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="adoptionsChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Total Expenses</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="expensesChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Report Overview</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card text-white bg-primary mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Animal Control Surrenders</h5>
+                        <p class="display-4 mb-0">{{ total_surrenders }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-white bg-success mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Total 60+ Day Adoptions</h5>
+                        <p class="display-4 mb-0">{{ total_adoptions }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-white bg-info mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Expenses</h5>
+                        <p class="display-4 mb-0">${{ total_expenses | round(2) }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    const months = [{% for month_data in report_data %}'{{ month_data.month }}',{% endfor %}];
+    const surrendersData = [{% for month_data in report_data %}{{ month_data.ac_surrenders }},{% endfor %}];
+    const adoptionsData = [{% for month_data in report_data %}{{ month_data.adopted_60d }},{% endfor %}];
+    const expensesData = [{% for month_data in report_data %}{{ month_data.expenses }},{% endfor %}];
+    
+    
+    const surrendersCtx = document.getElementById('surrendersChart').getContext('2d');
+    new Chart(surrendersCtx, {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Animal Control Surrenders',
+                data: surrendersData,
+                backgroundColor: 'rgba(74, 110, 181, 0.6)',
+                borderColor: 'rgba(74, 110, 181, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+    
+    
+    const adoptionsCtx = document.getElementById('adoptionsChart').getContext('2d');
+    new Chart(adoptionsCtx, {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Dogs Adopted (60+ Days)',
+                data: adoptionsData,
+                backgroundColor: 'rgba(40, 167, 69, 0.6)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+    
+    
+    const expensesCtx = document.getElementById('expensesChart').getContext('2d');
+    new Chart(expensesCtx, {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Total Expenses ($)',
+                data: expensesData,
+                backgroundColor: 'rgba(23, 162, 184, 0.6)',
+                borderColor: 'rgba(23, 162, 184, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            },
+            tooltips: {
+                callbacks: {
+                    label: function(tooltipItem, data) {
+                        return '$' + tooltipItem.yLabel.toFixed(2);
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

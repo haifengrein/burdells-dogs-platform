@@ -1,0 +1,200 @@
+{% extends "layout.html" %}
+
+{% block title %}Dogs Information | Burdell's Devoted Dogs{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Dogs Information</li>
+            </ol>
+        </nav>
+        <h1 class="mb-0">
+            <i class="fas fa-paw me-2 text-primary"></i>Dogs Information
+        </h1>
+        <p class="text-muted">Complete list of all dogs in the shelter system</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('dogs.add') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-1"></i> Add New Dog
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-filter me-2"></i>Filter Dogs
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('dogs.list_dogs') }}">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="adoptability_status" class="form-label">Adoptability Status</label>
+                    <select class="form-select" id="adoptability_status" name="adoptability_status">
+                        <option value="">All</option>
+                        <option value="Available" {% if request.args.get('adoptability_status') == 'Available' %}selected{% endif %}>Available</option>
+                        <option value="Not Available" {% if request.args.get('adoptability_status') == 'Not Available' %}selected{% endif %}>Not Available</option>
+                        <option value="Adopted" {% if request.args.get('adoptability_status') == 'Adopted' %}selected{% endif %}>Adopted</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="sort_by" class="form-label">Sort By</label>
+                    <select class="form-select" id="sort_by" name="sort_by">
+                        <option value="name" {% if request.args.get('sort_by') == 'name' %}selected{% endif %}>Name</option>
+                        <option value="surrender_date" {% if request.args.get('sort_by') == 'surrender_date' or not request.args.get('sort_by') %}selected{% endif %}>Surrender Date</option>
+                        <option value="age_at_time_of_surrender" {% if request.args.get('sort_by') == 'age_at_time_of_surrender' %}selected{% endif %}>Age</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="sort_order" class="form-label">Sort Order</label>
+                    <select class="form-select" id="sort_order" name="sort_order">
+                        <option value="asc" {% if request.args.get('sort_order') == 'asc' or not request.args.get('sort_order') %}selected{% endif %}>Ascending</option>
+                        <option value="desc" {% if request.args.get('sort_order') == 'desc' %}selected{% endif %}>Descending</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="d-grid gap-2 w-100">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-1"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-list me-2"></i>Dogs List
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Sex</th>
+                        <th>Altered</th>
+                        <th>Age</th>
+                        <th>Surrender Date</th>
+                        <th>Breed</th>
+                        <th>Microchipped</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dog in dogs %}
+                    <tr>
+                        <td>{{ dog.dogID }}</td>
+                        <td>{{ dog.name }}</td>
+                        <td>{{ dog.sex }}</td>
+                        <td>
+                            {% if dog.alteration_status == 1 %}
+                            <span class="badge bg-success"><i class="fas fa-check"></i></span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="fas fa-times"></i></span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if dog.age_at_time_of_surrender >= 12 %}
+                                {{ (dog.age_at_time_of_surrender / 12)|int }} year{% if (dog.age_at_time_of_surrender / 12)|int != 1 %}s{% endif %}
+                                {% if dog.age_at_time_of_surrender % 12 != 0 %}
+                                    {{ dog.age_at_time_of_surrender % 12 }} month{% if dog.age_at_time_of_surrender % 12 != 1 %}s{% endif %}
+                                {% endif %}
+                            {% else %}
+                                {{ dog.age_at_time_of_surrender }} month{% if dog.age_at_time_of_surrender != 1 %}s{% endif %}
+                            {% endif %}
+                        </td>
+                        <td>{{ dog.surrender_date }}</td>
+                        <td>{{ dog.breeds }}</td>
+                        <td>
+                            {% if dog.microchipped %}
+                            <span class="badge bg-success"><i class="fas fa-check"></i></span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="fas fa-times"></i></span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if dog.adoptability_status == 'Available' %}
+                            <span class="badge bg-success">Available</span>
+                            {% elif dog.adoptability_status == 'Not Available' %}
+                            <span class="badge bg-warning text-dark">Not Available</span>
+                            {% elif dog.adoptability_status == 'Adopted' %}
+                            <span class="badge bg-info">Adopted</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('dogs.detail', dog_id=dog.dogID) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-paw"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if not dogs %}
+<div class="alert alert-info mt-4">
+    <i class="fas fa-info-circle me-2"></i> No dogs found matching your criteria.
+</div>
+{% endif %}
+
+
+{% if pagination is defined and pagination.pages > 1 %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if pagination.page == 1 else '' }}">
+            {% set args = request.args.copy() %}
+            {% if 'page' in args %}
+            {% do args.pop('page') %}
+            {% endif %}
+            <a class="page-link" href="{{ url_for('dogs.list_dogs', page=pagination.page-1, **args) if pagination.page > 1 else '#' }}" tabindex="-1" aria-disabled="{{ 'true' if pagination.page == 1 else 'false' }}">Previous</a>
+        </li>
+        
+        {% for page_num in range(1, pagination.pages + 1) %}
+        <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
+            {% set args = request.args.copy() %}
+            {% if 'page' in args %}
+            {% do args.pop('page') %}
+            {% endif %}
+            <a class="page-link" href="{{ url_for('dogs.list_dogs', page=page_num, **args) }}">{{ page_num }}</a>
+        </li>
+        {% endfor %}
+        
+        <li class="page-item {{ 'disabled' if pagination.page == pagination.pages else '' }}">
+            {% set args = request.args.copy() %}
+            {% if 'page' in args %}
+            {% do args.pop('page') %}
+            {% endif %}
+            <a class="page-link" href="{{ url_for('dogs.list_dogs', page=pagination.page+1, **args) if pagination.page < pagination.pages else '#' }}">Next</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+ 
+        const clearFiltersBtn = document.getElementById('clear-filters');
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', function() {
+                window.location.href = "{{ url_for('dogs.list_dogs') }}";
+            });
+        }
+    });
+</script>
+{% endblock %}

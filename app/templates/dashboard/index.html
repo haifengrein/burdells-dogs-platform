@@ -1,0 +1,461 @@
+{% extends "layout.html" %}
+
+{% block title %}Dog Dashboard | Burdell's Devoted Dogs{% endblock %}
+
+{% block main_content %}
+<div class="dashboard-header">
+    <h1 class="display-5 mb-2">
+        <i class="fas fa-paw me-3 text-primary"></i>Dog Dashboard
+    </h1>
+    <p class="text-muted mb-4">Welcome to Burdell's Devoted Dogs Rescue</p>
+</div>
+
+<div class="d-flex justify-content-end mb-4 gap-3">
+    <a href="{{ url_for('adoption.add_app') }}" class="btn btn-info">
+        <i class="fas fa-file-alt me-2"></i> Add Application
+    </a>
+    {% if can_add_dog %}
+    <a href="{{ url_for('dogs.add') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i> Add Dog
+    </a>
+    {% else %}
+    <button class="btn btn-secondary" disabled data-bs-toggle="tooltip" title="Shelter is at full capacity">
+        <i class="fas fa-plus me-2"></i> Add Dog
+    </button>
+    {% endif %}
+</div>
+
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stats-card stats-primary">
+            <div class="stats-icon">
+                <i class="fas fa-dog"></i>
+            </div>
+            <div class="stats-content">
+                <div class="stats-value">{{ current_dogs }}/{{ max_capacity }}</div>
+                <div class="stats-label">Dogs in Shelter</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stats-card stats-success">
+            <div class="stats-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stats-content">
+                <div class="stats-value">{{ available_dogs }}</div>
+                <div class="stats-label">Available for Adoption</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stats-card stats-info">
+            <div class="stats-icon">
+                <i class="fas fa-heart"></i>
+            </div>
+            <div class="stats-content">
+                <div class="stats-value">{{ recent_adoptions }}</div>
+                <div class="stats-label">Recent Adoptions</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stats-card stats-warning">
+            <div class="stats-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="stats-content">
+                <div class="stats-value">{{ pending_applications }}</div>
+                <div class="stats-label">Pending Applications</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-home me-2"></i>Shelter Capacity
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <p class="text-muted mb-0">Current shelter occupancy status</p>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex justify-content-md-end align-items-center">
+                    <div class="me-4">
+                        <span class="h3 mb-0 fw-bold">{{ current_dogs }}/{{ max_capacity }}</span> 
+                        <span class="text-muted">dogs in shelter</span>
+                    </div>
+                    <div style="width: 120px; height: 120px;" class="position-relative">
+                        <svg viewBox="0 0 36 36" class="circular-chart">
+                            <path class="circle-bg"
+                                d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                            <path class="circle {% if (current_dogs / max_capacity) * 100 > 90 %}circle-danger{% elif (current_dogs / max_capacity) * 100 > 75 %}circle-warning{% else %}circle-primary{% endif %}"
+                                stroke-dasharray="{{ (current_dogs / max_capacity) * 100 }}, 100"
+                                d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                            <text x="18" y="20.35" class="percentage {% if (current_dogs / max_capacity) * 100 > 90 %}percentage-danger{% elif (current_dogs / max_capacity) * 100 > 75 %}percentage-warning{% else %}percentage-primary{% endif %}">{{ ((current_dogs / max_capacity) * 100) | round | int }}%</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-filter me-2"></i>Filter Dogs
+        </h5>
+    </div>
+    <div class="card-body">
+        <form id="filter-form" method="GET" action="{{ url_for('dashboard.index') }}">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="adoptability_status" class="form-label">Adoptability Status</label>
+                    <select class="form-select" id="adoptability_status" name="adoptability_status">
+                        <option value="">All</option>
+                        <option value="Available" {% if request.args.get('adoptability_status') == 'Available' %}selected{% endif %}>Available</option>
+                        <option value="Not Available" {% if request.args.get('adoptability_status') == 'Not Available' %}selected{% endif %}>Not Available</option>
+                        <option value="Adopted" {% if request.args.get('adoptability_status') == 'Adopted' %}selected{% endif %}>Adopted</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="sort_by" class="form-label">Sort By</label>
+                    <select class="form-select" id="sort_by" name="sort_by">
+                        <option value="surrender_date" {% if request.args.get('sort_by') == 'surrender_date' or not request.args.get('sort_by') %}selected{% endif %}>Surrender Date</option>
+                        <option value="name" {% if request.args.get('sort_by') == 'name' %}selected{% endif %}>Name</option>
+                        <option value="age_at_time_of_surrender" {% if request.args.get('sort_by') == 'age_at_time_of_surrender' %}selected{% endif %}>Age</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="sort_order" class="form-label">Sort Order</label>
+                    <select class="form-select" id="sort_order" name="sort_order">
+                        <option value="asc" {% if request.args.get('sort_order') == 'asc' or not request.args.get('sort_order') %}selected{% endif %}>Ascending</option>
+                        <option value="desc" {% if request.args.get('sort_order') == 'desc' %}selected{% endif %}>Descending</option>
+                    </select>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between mt-3">
+                <button type="button" id="clear-filters" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i> Clear Filters
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter me-2"></i> Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+{% if dogs %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for dog in dogs %}
+    <div class="col">
+        <div class="card h-100 dog-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-paw me-2 text-primary"></i>{{ dog.name }}
+                </h5>
+                {% if dog.adoptability_status == 'Available' %}
+                <span class="status-badge status-badge-available">
+                    <i class="fas fa-check-circle"></i> Available
+                </span>
+                {% elif dog.adoptability_status == 'Not Available' %}
+                <span class="status-badge status-badge-not-available">
+                    <i class="fas fa-clock"></i> Not Available
+                </span>
+                {% elif dog.adoptability_status == 'Adopted' %}
+                <span class="status-badge status-badge-adopted">
+                    <i class="fas fa-home"></i> Adopted
+                </span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush mb-3">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span><i class="fas fa-id-card me-2 text-primary"></i>ID:</span> 
+                        <span class="fw-bold">{{ dog.dogID }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span><i class="fas fa-venus-mars me-2 text-primary"></i>Sex:</span> 
+                        <span>{{ dog.sex }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span><i class="fas fa-cut me-2 text-primary"></i>Altered:</span> 
+                        <span>{% if dog.alteration_status %}<i class="fas fa-check text-success"></i> Yes{% else %}<i class="fas fa-times text-danger"></i> No{% endif %}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span><i class="fas fa-birthday-cake me-2 text-primary"></i>Age:</span> 
+                        <span>
+                            {% if dog['age_at_time_of_surrender'] >= 12 %}
+                                {{ (dog['age_at_time_of_surrender'] / 12)|int }} year{% if (dog['age_at_time_of_surrender'] / 12)|int != 1 %}s{% endif %}
+                                {% if dog['age_at_time_of_surrender'] % 12 != 0 %}
+                                    {{ dog['age_at_time_of_surrender'] % 12 }} month{% if dog['age_at_time_of_surrender'] % 12 != 1 %}s{% endif %}
+                                {% endif %}
+                            {% else %}
+                                {{ dog['age_at_time_of_surrender'] }} month{% if dog['age_at_time_of_surrender'] != 1 %}s{% endif %}
+                            {% endif %}
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span><i class="fas fa-calendar-day me-2 text-primary"></i>Surrendered:</span> 
+                        <span>{{ dog.surrender_date }}</span>
+                    </li>
+                    {% if dog.breeds %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span><i class="fas fa-tags me-2 text-primary"></i>Breed:</span> 
+                        <span>{{ dog.breeds }}</span>
+                    </li>
+                    {% endif %}
+                    {% if dog.microchipped %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span><i class="fas fa-microchip me-2 text-primary"></i>Microchipped:</span> 
+                        <span><i class="fas fa-check text-success"></i> Yes</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span><i class="fas fa-microchip me-2 text-primary"></i>Microchipped:</span> 
+                        <span><i class="fas fa-times text-danger"></i> No</span>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="dog-card-footer">
+                    <a href="{{ url_for('dogs.detail', dog_id=dog.dogID) }}" class="btn btn-primary w-100">
+                        <i class="fas fa-paw me-2"></i> View Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+
+{% if pagination.pages > 1 %}
+<nav class="mt-4" aria-label="Dog pagination">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if pagination.page == 1 else '' }}">
+            {% set args = request.args.copy() %}
+            {% if 'page' in args %}
+            {% do args.pop('page') %}
+            {% endif %}
+            <a class="page-link" href="{{ url_for('dashboard.index', page=pagination.page-1, **args) if pagination.page > 1 else '#' }}" aria-label="Previous">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>
+        
+        {% set start_page = [pagination.page - 2, 1]|max %}
+        {% set end_page = [start_page + 4, pagination.pages]|min %}
+        {% set start_page = [end_page - 4, 1]|max %}
+        
+        {% if start_page > 1 %}
+        <li class="page-item">
+            {% set args = request.args.copy() %}
+            {% if 'page' in args %}
+            {% do args.pop('page') %}
+            {% endif %}
+            <a class="page-link" href="{{ url_for('dashboard.index', page=1, **args) }}">1</a>
+        </li>
+        {% if start_page > 2 %}
+        <li class="page-item disabled">
+            <span class="page-link">...</span>
+        </li>
+        {% endif %}
+        {% endif %}
+        
+        {% for page_num in range(start_page, end_page + 1) %}
+        <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
+            {% set args = request.args.copy() %}
+            {% if 'page' in args %}
+            {% do args.pop('page') %}
+            {% endif %}
+            <a class="page-link" href="{{ url_for('dashboard.index', page=page_num, **args) }}">
+                {{ page_num }}
+            </a>
+        </li>
+        {% endfor %}
+        
+        {% if end_page < pagination.pages %}
+        {% if end_page < pagination.pages - 1 %}
+        <li class="page-item disabled">
+            <span class="page-link">...</span>
+        </li>
+        {% endif %}
+        <li class="page-item">
+            {% set args = request.args.copy() %}
+        {% if 'page' in args %}
+        {% do args.pop('page') %}
+        {% endif %}
+        <a class="page-link" href="{{ url_for('dashboard.index', page=pagination.pages, **args) }}">{{ pagination.pages }}</a>
+        </li>
+        {% endif %}
+        
+        <li class="page-item {{ 'disabled' if pagination.page == pagination.pages else '' }}">
+            {% set args = request.args.copy() %}
+            {% if 'page' in args %}
+            {% do args.pop('page') %}
+            {% endif %}
+            <a class="page-link" href="{{ url_for('dashboard.index', page=pagination.page+1, **args) if pagination.page < pagination.pages else '#' }}" aria-label="Next">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i> No dogs found with the selected criteria.
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        
+        const filterForm = document.getElementById('filter-form');
+        const filterSelects = filterForm.querySelectorAll('select');
+        
+        filterSelects.forEach(function(select) {
+            select.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        });
+        
+        
+        document.getElementById('clear-filters').addEventListener('click', function() {
+            window.location.href = "{{ url_for('dashboard.index') }}";
+        });
+        
+        
+        const circleElement = document.querySelector('.circle');
+        if (circleElement) {
+            
+            const currentValue = parseFloat(circleElement.getAttribute('stroke-dasharray').split(',')[0]);
+            
+            
+            let startValue = 0;
+            const duration = 1000; 
+            const frameRate = 60;
+            const totalFrames = duration / (1000 / frameRate);
+            const valueIncrement = currentValue / totalFrames;
+            
+            
+            const originalDashArray = circleElement.getAttribute('stroke-dasharray');
+            
+            
+            circleElement.setAttribute('stroke-dasharray', `0, 100`);
+            
+            
+            let frame = 0;
+            const animate = function() {
+                frame++;
+                const value = Math.min(startValue + valueIncrement * frame, currentValue);
+                circleElement.setAttribute('stroke-dasharray', `${value}, 100`);
+                
+                if (frame < totalFrames) {
+                    requestAnimationFrame(animate);
+                } else {
+                    
+                    circleElement.setAttribute('stroke-dasharray', originalDashArray);
+                }
+            };
+            
+            
+            setTimeout(function() {
+                requestAnimationFrame(animate);
+            }, 300);
+        }
+    });
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    
+    .dashboard-header {
+        padding-bottom: 1rem;
+    }
+    
+    .stats-card {
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    
+    .stats-icon {
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        margin-right: 1.25rem;
+    }
+    
+    
+    .dog-card .list-group-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1.25rem;
+    }
+    
+    .dog-card .list-group-item i {
+        width: 20px;
+        text-align: center;
+        margin-right: 0.5rem;
+    }
+    
+    
+    .circular-chart {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .circle-bg {
+        fill: none;
+        stroke: var(--gray-200);
+        stroke-width: 3.8;
+    }
+    
+    .circle {
+        fill: none;
+        stroke-width: 3.8;
+        stroke-linecap: round;
+        transition: stroke-dasharray 0.8s ease;
+    }
+    
+    .percentage {
+        font-size: 0.5em;
+        font-weight: bold;
+        text-anchor: middle;
+    }
+</style>
+{% endblock %}

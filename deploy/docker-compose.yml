@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: burdells_dogs_db
+      MYSQL_USER: ${DB_USER:-gatechUser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-gatech123}
+    volumes:
+      - db_data:/var/lib/mysql
+  
+      - ../app/database:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Resource 
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.50'
+    #       memory: 512M
+
+  # Application Service
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      DB_HOST: db
+      DB_USER: ${DB_USER:-gatechUser}
+      DB_PASSWORD: ${DB_PASSWORD:-gatech123}
+      DB_NAME: burdells_dogs_db
+      
+
+      FLASK_DEBUG: 0
+      SECRET_KEY: ${SECRET_KEY:-change_this_in_production}
+
+      WEB_CONCURRENCY: 2
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
