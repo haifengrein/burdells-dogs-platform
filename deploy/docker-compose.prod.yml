@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  db:
+    image: "mysql:8.0"
+    restart: "always"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: "burdells_dogs_db"
+      MYSQL_USER: ${DB_USER:-gatechUser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-gatech123}
+    volumes:
+      - "db_data:/var/lib/mysql"
+      - "../app/database:/docker-entrypoint-initdb.d"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: "10s"
+      timeout: "5s"
+      retries: 5
+
+  web:
+    image: ${WEB_IMAGE:-burdells-dogs-db:latest}
+    restart: "always"
+    ports:
+      - "127.0.0.1:8080:4000"
+    env_file:
+      - "../.env"
+    environment:
+      DB_HOST: "db"
+      DB_USER: ${DB_USER:-gatechUser}
+      DB_PASSWORD: ${DB_PASSWORD:-gatech123}
+      DB_NAME: "burdells_dogs_db"
+      FLASK_DEBUG: 0
+      SECRET_KEY: ${SECRET_KEY:-change_this_in_production}
+      WEB_CONCURRENCY: 2
+    depends_on:
+      db:
+        condition: "service_healthy"
+    networks:
+      default: {}
+      edge-net:
+        aliases:
+          - "burdells-web"
+
+volumes:
+  db_data:
+
+networks:
+  edge-net:
+    external: true

@@ -1,0 +1,113 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: ["main", "deployment/aws"]
+
+env:
+  IMAGE_NAME: "burdells-dogs-db"
+
+jobs:
+  build-and-pack:
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: "read"
+
+    steps:
+      - uses: "actions/checkout@v4"
+
+      - name: "Set up Docker Buildx"
+        uses: "docker/setup-buildx-action@v3"
+
+      - name: "Prepare image artifacts directory"
+        run: mkdir -p "deploy-images"
+
+      - name: "Build image (export tar)"
+        uses: "docker/build-push-action@v4"
+        with:
+          context: "."
+          file: "deploy/Dockerfile"
+          tags: "${{ env.IMAGE_NAME }}:latest"
+          outputs: "type=docker,dest=deploy-images/${{ env.IMAGE_NAME }}.tar"
+
+      - name: "Compress image tar"
+        run: gzip -9 "deploy-images/${{ env.IMAGE_NAME }}.tar"
+
+      - name: "Upload image artifact"
+        uses: "actions/upload-artifact@v4"
+        with:
+          name: "deploy-images"
+          path: "deploy-images/*.tar.gz"
+
+  deploy:
+    needs: "build-and-pack"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v4"
+
+      - name: "Download image artifact"
+        uses: "actions/download-artifact@v4"
+        with:
+          name: "deploy-images"
+          path: "deploy-images"
+
+      - name: "Generate .env for OAuth2"
+        env:
+          GOOGLE_CLIENT_ID: "${{ secrets.GOOGLE_CLIENT_ID }}"
+          GOOGLE_CLIENT_SECRET: "${{ secrets.GOOGLE_CLIENT_SECRET }}"
+        run: |
+          printf "GOOGLE_CLIENT_ID=%s\n" "$GOOGLE_CLIENT_ID" > ".env"
+          printf "GOOGLE_CLIENT_SECRET=%s\n" "$GOOGLE_CLIENT_SECRET" >> ".env"
+
+      - name: "Copy deployment files to server"
+        uses: "appleboy/scp-action@v0.1.7"
+        with:
+          host: "${{ secrets.SERVER_IP }}"
+          username: "ubuntu"
+          key: "${{ secrets.SSH_PRIVATE_KEY }}"
+          source: "deploy/docker-compose.prod.yml,app/database,deploy-images/${{ env.IMAGE_NAME }}.tar.gz,.env"
+          target: "~/burdells_dogs_db"
+
+      - name: "Deploy on server"
+        uses: "appleboy/ssh-action@v1.0.3"
+        with:
+          host: "${{ secrets.SERVER_IP }}"
+          username: "ubuntu"
+          key: "${{ secrets.SSH_PRIVATE_KEY }}"
+          script: |
+            set -eu
+            APP_DIR="$HOME/burdells_dogs_db"
+            mkdir -p "$APP_DIR"
+            cd "$APP_DIR"
+
+            echo "user=$(id -un) groups=$(id -nG)"
+
+            USE_SUDO=0
+            if ! docker info >/dev/null 2>&1; then
+              if sudo -n true 2>/dev/null; then
+                USE_SUDO=1
+              else
+                echo "ERROR: docker requires sudo; configure docker group or passwordless sudo." >&2
+                exit 1
+              fi
+            fi
+
+            run_docker() {
+              if [ "$USE_SUDO" -eq 1 ]; then
+                sudo -n docker "$@"
+              else
+                docker "$@"
+              fi
+            }
+
+            run_docker --version
+            run_docker compose version
+
+            if ! run_docker network inspect "edge-net" >/dev/null 2>&1; then
+              run_docker network create "edge-net" >/dev/null
+            fi
+
+            gzip -dc "deploy-images/${{ env.IMAGE_NAME }}.tar.gz" | run_docker load
+            export WEB_IMAGE="${{ env.IMAGE_NAME }}:latest"
+            run_docker compose -f "deploy/docker-compose.prod.yml" up -d
+            run_docker compose -f "deploy/docker-compose.prod.yml" ps
