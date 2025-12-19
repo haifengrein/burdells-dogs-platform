@@ -21,8 +21,6 @@ services:
   web:
     image: ${WEB_IMAGE:-burdells-dogs-db:latest}
     restart: "always"
-    ports:
-      - "127.0.0.1:8080:4000"
     env_file:
       - "../.env"
     environment:
