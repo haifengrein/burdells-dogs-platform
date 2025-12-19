@@ -14,7 +14,7 @@ def create_app():
                 template_folder=os.path.join(base_dir, 'templates'),
                 static_folder=os.path.join(base_dir, 'static'))
     
-    app.secret_key = 'burdells_dogs_development_key'
+    app.secret_key = os.environ.get("SECRET_KEY", "CHANGE_THIS_TO_A_STRONG_SECRET")
     
     app.jinja_env.auto_reload = True
     app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -43,6 +43,7 @@ def create_app():
     
     @app.context_processor
     def inject_globals():
+        google_login_url = os.environ.get("GOOGLE_OAUTH_LOGIN_URL", "/api/v1/auth/google/login")
         stats = {}
         if 'logged_in' in session:
             try:
@@ -72,6 +73,7 @@ def create_app():
             'is_volunteer': session.get('is_volunteer', False),
             'is_admin': session.get('is_admin', False),
             'is_authenticated': 'logged_in' in session,
+            'google_login_url': google_login_url,
             'current_dogs': stats['current_dogs'],
             'max_capacity': stats['max_capacity'],
             'available_dogs': stats['available_dogs'],

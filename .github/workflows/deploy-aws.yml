@@ -55,9 +55,54 @@ jobs:
         env:
           GOOGLE_CLIENT_ID: "${{ secrets.GOOGLE_CLIENT_ID }}"
           GOOGLE_CLIENT_SECRET: "${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          SECRET_KEY: "${{ secrets.SECRET_KEY }}"
+          PUBLIC_APP_ORIGIN: "${{ secrets.PUBLIC_APP_ORIGIN }}"
+          GOOGLE_REDIRECT_URI: "${{ secrets.GOOGLE_REDIRECT_URI }}"
+          MYSQL_ROOT_PASSWORD: "${{ secrets.MYSQL_ROOT_PASSWORD }}"
+          DB_USER: "${{ secrets.DB_USER }}"
+          DB_PASSWORD: "${{ secrets.DB_PASSWORD }}"
+          DB_NAME: "${{ secrets.DB_NAME }}"
+          DB_PORT: "${{ secrets.DB_PORT }}"
         run: |
-          printf "GOOGLE_CLIENT_ID=%s\n" "$GOOGLE_CLIENT_ID" > ".env"
-          printf "GOOGLE_CLIENT_SECRET=%s\n" "$GOOGLE_CLIENT_SECRET" >> ".env"
+          if [ -z "$GOOGLE_CLIENT_ID" ] || [ -z "$GOOGLE_CLIENT_SECRET" ]; then
+            echo "ERROR: missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET secrets." >&2
+            exit 1
+          fi
+          if [ -z "$SECRET_KEY" ]; then
+            echo "ERROR: missing SECRET_KEY secret (required for JWT/session consistency)." >&2
+            exit 1
+          fi
+
+          if [ -z "${PUBLIC_APP_ORIGIN:-}" ]; then
+            PUBLIC_APP_ORIGIN="https://db.haifenghou.com"
+          fi
+          if [ -z "${GOOGLE_REDIRECT_URI:-}" ]; then
+            GOOGLE_REDIRECT_URI="${PUBLIC_APP_ORIGIN%/}/api/v1/auth/google/callback"
+          fi
+
+          MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-rootpassword}"
+          DB_USER="${DB_USER:-gatechUser}"
+          DB_PASSWORD="${DB_PASSWORD:-gatech123}"
+          DB_NAME="${DB_NAME:-burdells_dogs_db}"
+          DB_PORT="${DB_PORT:-3306}"
+          DB_HOST="burdells-db"
+
+          {
+            printf "MYSQL_ROOT_PASSWORD=%s\n" "$MYSQL_ROOT_PASSWORD"
+            printf "MYSQL_DATABASE=%s\n" "$DB_NAME"
+            printf "MYSQL_USER=%s\n" "$DB_USER"
+            printf "MYSQL_PASSWORD=%s\n" "$DB_PASSWORD"
+            printf "DB_USER=%s\n" "$DB_USER"
+            printf "DB_PASSWORD=%s\n" "$DB_PASSWORD"
+            printf "DB_NAME=%s\n" "$DB_NAME"
+            printf "DB_HOST=%s\n" "$DB_HOST"
+            printf "DB_PORT=%s\n" "$DB_PORT"
+            printf "GOOGLE_CLIENT_ID=%s\n" "$GOOGLE_CLIENT_ID"
+            printf "GOOGLE_CLIENT_SECRET=%s\n" "$GOOGLE_CLIENT_SECRET"
+            printf "SECRET_KEY=%s\n" "$SECRET_KEY"
+            printf "PUBLIC_APP_ORIGIN=%s\n" "$PUBLIC_APP_ORIGIN"
+            printf "GOOGLE_REDIRECT_URI=%s\n" "$GOOGLE_REDIRECT_URI"
+          } > ".env"
 
       - name: "Copy deployment files to server"
         uses: "appleboy/scp-action@v0.1.7"
@@ -124,24 +169,17 @@ jobs:
 
             rotate_container "deploy_db_1"
             rotate_container "deploy_web_1"
+            rotate_container "deploy_api_1"
             rotate_container "burdells-db"
             rotate_container "burdells-web"
-
-            MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-rootpassword}"
-            DB_USER="${DB_USER:-gatechUser}"
-            DB_PASSWORD="${DB_PASSWORD:-gatech123}"
-            DB_NAME="${DB_NAME:-burdells_dogs_db}"
-            SECRET_KEY="${SECRET_KEY:-change_this_in_production}"
+            rotate_container "burdells-api"
 
             run_docker pull "mysql:8.0" >/dev/null
             run_docker run -d \
               --name "burdells-db" \
               --restart "always" \
               --network "$APP_NETWORK_NAME" \
-              -e "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD" \
-              -e "MYSQL_DATABASE=$DB_NAME" \
-              -e "MYSQL_USER=$DB_USER" \
-              -e "MYSQL_PASSWORD=$DB_PASSWORD" \
+              --env-file "$APP_DIR/.env" \
               -v "${DB_VOLUME_NAME}:/var/lib/mysql" \
               -v "$APP_DIR/app/database:/docker-entrypoint-initdb.d:ro" \
               "mysql:8.0" >/dev/null
@@ -149,7 +187,7 @@ jobs:
             echo "Waiting for MySQL to be ready..."
             i=1
             while [ "$i" -le 60 ]; do
-              if run_docker exec "burdells-db" mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD" --silent >/dev/null 2>&1; then
+              if run_docker exec "burdells-db" sh -lc 'mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD" --silent' >/dev/null 2>&1; then
                 echo "MySQL is ready."
                 break
               fi
@@ -172,15 +210,20 @@ jobs:
               --restart "always" \
               --network "$APP_NETWORK_NAME" \
               --env-file "$APP_DIR/.env" \
-              -e "DB_HOST=burdells-db" \
-              -e "DB_USER=$DB_USER" \
-              -e "DB_PASSWORD=$DB_PASSWORD" \
-              -e "DB_NAME=$DB_NAME" \
-              -e "SECRET_KEY=$SECRET_KEY" \
               -e "FLASK_DEBUG=0" \
               -e "WEB_CONCURRENCY=2" \
               "$WEB_IMAGE" >/dev/null
 
             run_docker network connect --alias "burdells-web" "$EDGE_NETWORK_NAME" "burdells-web" >/dev/null 2>&1 || true
+
+            run_docker run -d \
+              --name "burdells-api" \
+              --restart "always" \
+              --network "$APP_NETWORK_NAME" \
+              --env-file "$APP_DIR/.env" \
+              "$WEB_IMAGE" \
+              /app/.venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000 >/dev/null
+
+            run_docker network connect --alias "burdells-api" "$EDGE_NETWORK_NAME" "burdells-api" >/dev/null 2>&1 || true
 
             run_docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'

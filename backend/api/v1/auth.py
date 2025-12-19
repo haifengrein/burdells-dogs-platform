@@ -1,5 +1,9 @@
 from typing import Annotated
+import os
+from urllib.parse import urlencode
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette.requests import Request
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -52,11 +56,19 @@ async def google_login(request: Request):
     """
     if not getattr(oauth, "google", None):
         raise HTTPException(status_code=501, detail="Google OAuth not configured (Missing Client ID)")
-        
-    redirect_uri = request.url_for('google_auth')
+
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI") or str(request.url_for("google_auth"))
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
-from fastapi.responses import RedirectResponse
+
+def _public_origin(request: Request) -> str:
+    configured = os.getenv("PUBLIC_APP_ORIGIN", "").strip().rstrip("/")
+    if configured:
+        return configured
+
+    proto = (request.headers.get("x-forwarded-proto") or request.url.scheme).split(",")[0].strip()
+    host = (request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc).split(",")[0].strip()
+    return f"{proto}://{host}".rstrip("/")
 
 
 
@@ -122,7 +134,8 @@ async def google_auth(
 
     access_token = create_access_token(subject=user.email)
 
-    return RedirectResponse(url=f"http://localhost:4000/auth/google-callback?token={access_token}")
+    redirect_url = f"{_public_origin(request)}/auth/google-callback?{urlencode({'token': access_token})}"
+    return RedirectResponse(url=redirect_url)
 
 @router.get("/me", response_model=UserBase)
 async def read_users_me(
