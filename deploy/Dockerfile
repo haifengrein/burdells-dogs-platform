@@ -4,11 +4,11 @@ FROM node:20-slim AS frontend-builder
 WORKDIR /app
 
 
-COPY frontend/package.json frontend/package-lock.json ./frontend/
+COPY frontend/package*.json ./frontend/
 
 # Install dependencies
 WORKDIR /app/frontend
-RUN npm ci
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # Copy frontend source code
 COPY frontend/ ./ 
@@ -34,11 +34,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy dependency definition files
-COPY pyproject.toml uv.lock ./ 
+COPY pyproject.toml README.md ./
+COPY app app/
+COPY backend backend/
+COPY run.py .
 
 # Install dependencies into a virtual environment
-# --no-install-project: only install dependencies, not the app itself (since we copy app code in final stage)
-RUN uv sync --frozen --no-install-project
+RUN uv venv .venv \
+    && uv pip install --python .venv/bin/python --no-cache-dir .
 
 
 # Stage 3: Runtime
