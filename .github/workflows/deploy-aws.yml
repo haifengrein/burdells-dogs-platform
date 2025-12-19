@@ -102,19 +102,25 @@ jobs:
 
             run_docker --version
 
-            COMPOSE_CMD=""
-            if run_docker compose version >/dev/null 2>&1; then
-              COMPOSE_CMD="run_docker compose"
-            elif command -v docker-compose >/dev/null 2>&1; then
-              if [ "$USE_SUDO" -eq 1 ]; then
-                COMPOSE_CMD="sudo -n docker-compose"
-              else
-                COMPOSE_CMD="docker-compose"
+            run_compose() {
+              if command -v docker-compose >/dev/null 2>&1; then
+                compose_version="$(docker-compose version --short 2>/dev/null || true)"
+                if printf "%s" "$compose_version" | grep -q "^2\\."; then
+                  if [ "$USE_SUDO" -eq 1 ]; then
+                    sudo -n docker-compose "$@"
+                  else
+                    docker-compose "$@"
+                  fi
+                  return 0
+                fi
               fi
-            else
-              echo "ERROR: neither 'docker compose' nor 'docker-compose' is available." >&2
-              exit 1
-            fi
+
+              run_docker run --rm \
+                -v "/var/run/docker.sock:/var/run/docker.sock" \
+                -v "$APP_DIR:$APP_DIR" \
+                -w "$APP_DIR" \
+                "docker/compose:2.27.0" "$@"
+            }
 
             if ! run_docker network inspect "edge-net" >/dev/null 2>&1; then
               run_docker network create "edge-net" >/dev/null
@@ -122,5 +128,5 @@ jobs:
 
             gzip -dc "deploy-images/${{ env.IMAGE_NAME }}.tar.gz" | run_docker load
             export WEB_IMAGE="${{ env.IMAGE_NAME }}:latest"
-            $COMPOSE_CMD -f "deploy/docker-compose.prod.yml" up -d
-            $COMPOSE_CMD -f "deploy/docker-compose.prod.yml" ps
+            run_compose -f "deploy/docker-compose.prod.yml" up -d
+            run_compose -f "deploy/docker-compose.prod.yml" ps
